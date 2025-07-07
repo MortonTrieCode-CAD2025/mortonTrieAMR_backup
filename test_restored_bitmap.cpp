@@ -58,9 +58,9 @@ int main() {
         D_morton key = i;
         map[key] = i * 10;
         if (map.exists(key)) {
-            std::cout << "✓ Key " << key << " exists after insertion" << std::endl;
+            std::cout << "Key " << key << " exists after insertion" << std::endl;
         } else {
-            std::cout << "✗ Key " << key << " should exist after insertion" << std::endl;
+            std::cout << "Key " << key << " should exist after insertion" << std::endl;
         }
     }
     

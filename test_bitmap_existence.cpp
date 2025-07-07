@@ -25,7 +25,7 @@ void test_basic_existence() {
             return;
         }
     }
-    std::cout << "✓ Initial non-existence check passed" << std::endl;
+    std::cout << "Initial non-existence check passed" << std::endl;
     
     // Insert cells
     for (int i = 0; i < 3; ++i) {
@@ -39,7 +39,7 @@ void test_basic_existence() {
             return;
         }
     }
-    std::cout << "✓ Post-insertion existence check passed" << std::endl;
+    std::cout << "Post-insertion existence check passed" << std::endl;
     
     // Test non-existent cells
     D_morton non_existent = 999;
@@ -47,7 +47,7 @@ void test_basic_existence() {
         std::cout << "ERROR: Non-existent cell should not be found" << std::endl;
         return;
     }
-    std::cout << "✓ Non-existent cell check passed" << std::endl;
+    std::cout << "Non-existent cell check passed" << std::endl;
     
     std::cout << "Basic existence test PASSED!" << std::endl;
 }
@@ -79,7 +79,7 @@ void test_mortontriemap_integration() {
         return;
     }
     
-    std::cout << "✓ MortonTrieMap integration test PASSED!" << std::endl;
+    std::cout << "MortonTrieMap integration test PASSED!" << std::endl;
 }
 
 void benchmark_existence_query() {

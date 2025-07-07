@@ -1,14 +1,13 @@
 #pragma once
 
 #include "settings.hpp"
+#include "General.h"
 #include <array>
 #include <vector>
 #include <utility>
 #include <iterator>
 #include <cmath>
 #include <bitset>
-
-#define MAX_3(a,b,c) (((a) > (b)) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
 
 class TrieNode {
 public:
@@ -60,8 +59,8 @@ private:
     std::vector<CellBitmap> existence_bitmaps; // One bitmap per background grid cell
 
     MortonTrie() {
-        depth = static_cast<uint8_t>(log2(MAX_3(Nx, Ny, Nz)) + 1 + refine_level);
-        // not containing the single root level , +1 for std::ceil(log2(MAX_3(Nx, Ny, Nz)))
+        depth = static_cast<uint8_t>(log2(max_of_three(Nx, Ny, Nz)) + 1 + refine_level);
+        // not containing the single root level , +1 for std::ceil(log2(max_of_three(Nx, Ny, Nz)))
         root = new TrieNode();
         search_path_stack = new std::vector<TrieNode*>(depth);
 

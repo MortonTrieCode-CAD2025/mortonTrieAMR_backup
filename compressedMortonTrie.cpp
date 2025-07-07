@@ -1,4 +1,5 @@
 #include "header/compressedMortonTrie.hpp"
+#include "header/Morton_Assist.h"
 #include <queue>
 
 void CompressedMortonTrie::init_compressed_Mtrie()

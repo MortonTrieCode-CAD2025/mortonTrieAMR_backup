@@ -34,8 +34,8 @@ int main()
 	double t1 = tmr.elapsed();
 	std::cout << "time for initialization: " << t1 - t0 << std::endl;
 
-	// LBM_Manager lbm_manager;
-	// lbm_manager.fluidSimulate();
+	LBM_Manager lbm_manager;
+	lbm_manager.fluidSimulate();
 
 	// obj_manager.time_marching_management();
 

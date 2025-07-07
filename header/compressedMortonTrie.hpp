@@ -1,7 +1,6 @@
 #pragma once
 
 #include "settings.hpp"
-#include "utils.hpp"
 #include "mortonTrie.hpp"
 
 class CompressedMortonTrie {

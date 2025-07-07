@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Morton_Assist.hpp"
+#include "Morton_Assist.h"
 #include "settings.hpp"
 #ifdef USE_HASHMAP
  #include <unordered_map>

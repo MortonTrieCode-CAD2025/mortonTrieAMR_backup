@@ -36,76 +36,76 @@ Lat_Manager lat_manager;
 #endif
 
 #if (C_MAP_TYPE == 1)
-// 内存测量工具类
+// Memory measurement utility class
 class MapMemoryMeasurer {
 public:
-	// 方法1: 使用bucket信息估算内存占用
-	template <typename K, typename V, typename Hash = std::hash<K>, 
-				typename Pred = std::equal_to<K>, 
+	// Method 1: Estimate memory usage using bucket information
+	template <typename K, typename V, typename Hash = std::hash<K>,
+				typename Pred = std::equal_to<K>,
 				typename Alloc = std::allocator<std::pair<const K, V>>>
 	static size_t estimateMemoryUsage(const std::unordered_map<K, V, Hash, Pred, Alloc>& map) {
-		// 基本容器大小
+		// Basic container size
 		size_t memoryUsage = sizeof(std::unordered_map<K, V, Hash, Pred, Alloc>);
-		
-		// 添加bucket数组的大小
+
+		// Add bucket array size
 		size_t bucketCount = map.bucket_count();
 		memoryUsage += bucketCount * sizeof(void*);
-		
-		// 添加节点的大小
-		size_t nodeSize = sizeof(std::pair<const K, V>) + sizeof(void*); // 节点包含pair和指针
+
+		// Add node size
+		size_t nodeSize = sizeof(std::pair<const K, V>) + sizeof(void*); // Node contains pair and pointer
 		memoryUsage += map.size() * nodeSize;
-		
-		// 对于string键，还需要考虑字符串本身的内存
+
+		// For string keys, consider the memory of the strings themselves
 		if constexpr(std::is_same_v<K, std::string>) {
 			for (const auto& pair : map) {
-				// 字符串的容量(通常比size大)加上一个指针和size_t (SSO优化除外)
+				// String capacity (usually larger than size) plus pointer and size_t (except for SSO optimization)
 				memoryUsage += pair.first.capacity() + 1 + sizeof(size_t) + sizeof(void*);
 			}
 		}
-		
-		// 对于string值，也需要考虑字符串内存
+
+		// For string values, also consider string memory
 		if constexpr(std::is_same_v<V, std::string>) {
 			for (const auto& pair : map) {
 				memoryUsage += pair.second.capacity() + 1 + sizeof(size_t) + sizeof(void*);
 			}
 		}
-		
+
 		return memoryUsage;
 	}
-	
-	// 方法2: 更详细的内存分析
-	template <typename K, typename V, typename Hash = std::hash<K>, 
-				typename Pred = std::equal_to<K>, 
+
+	// Method 2: More detailed memory analysis
+	template <typename K, typename V, typename Hash = std::hash<K>,
+				typename Pred = std::equal_to<K>,
 				typename Alloc = std::allocator<std::pair<const K, V>>>
 	static void analyzeMapMemory(const std::unordered_map<K, V, Hash, Pred, Alloc>& map) {
-		// 获取基本信息
+		// Get basic information
 		size_t size = map.size();
 		size_t bucketCount = map.bucket_count();
 		float loadFactor = size / static_cast<float>(bucketCount > 0 ? bucketCount : 1);
-		
-		// 计算估计内存
+
+		// Calculate estimated memory
 		size_t estimatedMemory = estimateMemoryUsage(map);
-		
-		// 输出分析结果
-		std::cout << "===== unordered_map 内存分析 =====\n";
-		std::cout << "类型: unordered_map<" 
-					<< typeid(K).name() << ", " 
+
+		// Output analysis results
+		std::cout << "===== unordered_map Memory Analysis =====\n";
+		std::cout << "Type: unordered_map<"
+					<< typeid(K).name() << ", "
 					<< typeid(V).name() << ">\n";
-		std::cout << "元素数量: " << size << "\n";
-		std::cout << "桶数量: " << bucketCount << "\n";
-		std::cout << "负载因子: " << loadFactor << "\n";
-		std::cout << "最大负载因子: " << map.max_load_factor() << "\n";
-		std::cout << "估计内存占用: " << estimatedMemory << " 字节 (" 
+		std::cout << "Element count: " << size << "\n";
+		std::cout << "Bucket count: " << bucketCount << "\n";
+		std::cout << "Load factor: " << loadFactor << "\n";
+		std::cout << "Max load factor: " << map.max_load_factor() << "\n";
+		std::cout << "Estimated memory usage: " << estimatedMemory << " bytes ("
 					<< (estimatedMemory / 1024.0) << " KB)\n";
-		std::cout << "每个元素平均内存: " 
-					<< (size > 0 ? estimatedMemory / static_cast<double>(size) : 0) 
-					<< " 字节\n";
-		
-		// 分析桶分布
+		std::cout << "Average memory per element: "
+					<< (size > 0 ? estimatedMemory / static_cast<double>(size) : 0)
+					<< " bytes\n";
+
+		// Analyze bucket distribution
 		size_t emptyBuckets = 0;
 		size_t maxBucketSize = 0;
 		size_t totalChainLength = 0;
-		
+
 		for (size_t i = 0; i < bucketCount; ++i) {
 			size_t bucketSize = map.bucket_size(i);
 			if (bucketSize == 0) {
@@ -116,40 +116,40 @@ public:
 			}
 			totalChainLength += bucketSize;
 		}
-		
-		std::cout << "空桶数量: " << emptyBuckets << " (" 
+
+		std::cout << "Empty buckets: " << emptyBuckets << " ("
 					<< (bucketCount > 0 ? emptyBuckets * 100.0 / bucketCount : 0) << "%)\n";
-		std::cout << "最大链长: " << maxBucketSize << "\n";
-		std::cout << "平均链长: " << (bucketCount > 0 ? totalChainLength / static_cast<double>(bucketCount) : 0) << "\n";
-		std::cout << "===================================\n";
+		std::cout << "Max chain length: " << maxBucketSize << "\n";
+		std::cout << "Average chain length: " << (bucketCount > 0 ? totalChainLength / static_cast<double>(bucketCount) : 0) << "\n";
+		std::cout << "=========================================\n";
 	}
-	
-	// 方法3: 通过拷贝前后的内存差测量 (需要操作系统支持)
+
+	// Method 3: Measure memory difference before and after copying (requires OS support)
 	template <typename MapType>
 	static size_t measureByDifference(const MapType& map) {
 		size_t beforeMem = getCurrentRSS();
-		
-		// 创建map的拷贝，这会分配新的内存
+
+		// Create a copy of the map, which will allocate new memory
 		MapType mapCopy = map;
-		
+
 		size_t afterMem = getCurrentRSS();
-		
-		// 返回差值，这应该接近map的实际内存占用
+
+		// Return the difference, which should approximate the actual memory usage of the map
 		return afterMem - beforeMem;
 	}
-	
+
 private:
-	// 获取当前进程的内存使用量 (Resident Set Size)
+	// Get current process memory usage (Resident Set Size)
 	static size_t getCurrentRSS() {
 #if defined(_WIN32)
-		// Windows实现
+		// Windows implementation
 		PROCESS_MEMORY_COUNTERS pmc;
 		if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
 			return pmc.WorkingSetSize;
 		}
 		return 0;
 #elif defined(__unix__) || defined(__linux__) || defined(__APPLE__)
-		// Unix/Linux/Mac实现
+		// Unix/Linux/Mac implementation
 		FILE* file = fopen("/proc/self/statm", "r");
 		if (file) {
 			long rss = 0;
@@ -159,121 +159,121 @@ private:
 			}
 			fclose(file);
 		}
-		
-		// 如果上面的方法失败，尝试使用getrusage
+
+		// If the above method fails, try using getrusage
 		struct rusage usage;
 		if (getrusage(RUSAGE_SELF, &usage) == 0) {
 			return usage.ru_maxrss * 1024;
 		}
 		return 0;
 #else
-		return 0; // 不支持的平台
+		return 0; // Unsupported platform
 #endif
 	}
 };
 #elif(C_MAP_TYPE == 2)
 class MapMemoryMeasurer {
 	public:
-		// 测量std::map的内存占用
+		// Measure std::map memory usage
 		template <typename K, typename V, typename Compare = std::less<K>,
 				  typename Alloc = std::allocator<std::pair<const K, V>>>
 		static size_t estimateMemoryUsage(const std::map<K, V, Compare, Alloc>& map) {
-			// 基本容器大小
+			// Basic container size
 			size_t memoryUsage = sizeof(std::map<K, V, Compare, Alloc>);
-			
-			// std::map通常使用红黑树实现，每个节点包含pair、颜色标记和三个指针(父、左、右)
-			size_t nodeOverhead = 3 * sizeof(void*) + sizeof(char); // 三个指针和颜色标记
+
+			// std::map typically uses red-black tree implementation, each node contains pair, color flag and three pointers (parent, left, right)
+			size_t nodeOverhead = 3 * sizeof(void*) + sizeof(char); // Three pointers and color flag
 			size_t nodeSize = sizeof(std::pair<const K, V>) + nodeOverhead;
-			
-			// 添加所有节点的内存
+
+			// Add memory for all nodes
 			memoryUsage += map.size() * nodeSize;
-			
-			// 处理string类型的键
+
+			// Handle string type keys
 			if constexpr(std::is_same_v<K, std::string>) {
 				for (const auto& pair : map) {
 					memoryUsage += estimateStringMemory(pair.first);
 				}
 			}
-			
-			// 处理string类型的值
+
+			// Handle string type values
 			if constexpr(std::is_same_v<V, std::string>) {
 				for (const auto& pair : map) {
 					memoryUsage += estimateStringMemory(pair.second);
 				}
 			}
-			
-			// 处理嵌套容器
+
+			// Handle nested containers
 			if constexpr(is_container_v<V>) {
 				for (const auto& pair : map) {
 					memoryUsage += estimateContainerMemory(pair.second);
 				}
 			}
-			
+
 			return memoryUsage;
 		}
 		template <typename K, typename V, typename Compare = std::less<K>,
               typename Alloc = std::allocator<std::pair<const K, V>>>
     static void analyzeMapMemory(const std::map<K, V, Compare, Alloc>& map) {
-        // 获取基本信息
+        // Get basic information
         size_t size = map.size();
-        
-        // 计算估计内存
+
+        // Calculate estimated memory
         size_t estimatedMemory = estimateMemoryUsage(map);
-        
-        // 输出分析结果
-        std::cout << "===== std::map 内存分析 =====\n";
-        std::cout << "类型: map<" 
-                  << typeid(K).name() << ", " 
+
+        // Output analysis results
+        std::cout << "===== std::map Memory Analysis =====\n";
+        std::cout << "Type: map<"
+                  << typeid(K).name() << ", "
                   << typeid(V).name() << ">\n";
-        std::cout << "元素数量: " << size << "\n";
-        std::cout << "估计内存占用: " << estimatedMemory << " 字节 (" 
+        std::cout << "Element count: " << size << "\n";
+        std::cout << "Estimated memory usage: " << estimatedMemory << " bytes ("
                   << (estimatedMemory / 1024.0) << " KB)\n";
-        std::cout << "每个元素平均内存: " 
-                  << (size > 0 ? estimatedMemory / static_cast<double>(size) : 0) 
-                  << " 字节\n";
-        
-        // 红黑树高度估计 (log2(n))
+        std::cout << "Average memory per element: "
+                  << (size > 0 ? estimatedMemory / static_cast<double>(size) : 0)
+                  << " bytes\n";
+
+        // Red-black tree height estimation (log2(n))
         if (size > 0) {
             double estimatedHeight = std::log2(size);
-            std::cout << "估计树高度: ~" << estimatedHeight << "\n";
+            std::cout << "Estimated tree height: ~" << estimatedHeight << "\n";
         }
-        
-        std::cout << "===================================\n";
+
+        std::cout << "=====================================\n";
     }
-	// 通过拷贝前后的内存差测量
+	// Measure memory difference before and after copying
     template <typename MapType>
     static size_t measureByDifference(const MapType& map) {
-        // 强制GC
+        // Force GC
         std::malloc(1);
         std::free(std::malloc(1));
-        
+
         size_t beforeMem = getCurrentRSS();
-        
-        // 创建map的拷贝，这会分配新的内存
+
+        // Create a copy of the map, which will allocate new memory
         MapType mapCopy = map;
-        
-        // 确保所有内存被真正分配
+
+        // Ensure all memory is actually allocated
         volatile char dummy = 0;
         for (const auto& pair : mapCopy) {
             dummy += reinterpret_cast<const char*>(&pair)[0];
         }
-        
-        // 强制GC
+
+        // Force GC
         std::malloc(1);
         std::free(std::malloc(1));
-        
+
         size_t afterMem = getCurrentRSS();
-        
-        // 返回差值，这应该接近map的实际内存占用
+
+        // Return the difference, which should approximate the actual memory usage of the map
         return afterMem - beforeMem;
     }
 	private:
-    // 检测类型是否为容器的trait
+    // Trait to detect if a type is a container
     template <typename T, typename = void>
     struct is_container : std::false_type {};
-    
+
     template <typename T>
-    struct is_container<T, 
+    struct is_container<T,
         std::void_t<
             typename T::value_type,
             typename T::size_type,
@@ -282,66 +282,66 @@ class MapMemoryMeasurer {
             decltype(std::declval<T>().begin()),
             decltype(std::declval<T>().end())
         >> : std::true_type {};
-    
+
     template <typename T>
     static constexpr bool is_container_v = is_container<T>::value;
-    
-    // 估计std::string的内存占用
+
+    // Estimate std::string memory usage
     static size_t estimateStringMemory(const std::string& str) {
-        // 检查是否使用SSO (Small String Optimization)
-        // 这个阈值因实现而异，通常在15-23字节之间
-        constexpr size_t ssoThreshold = 15; // 假设SSO阈值为15
-        
+        // Check if SSO (Small String Optimization) is used
+        // This threshold varies by implementation, typically between 15-23 bytes
+        constexpr size_t ssoThreshold = 15; // Assume SSO threshold is 15
+
         if (str.size() <= ssoThreshold) {
-            return 0; // 字符串已包含在string对象本身中
+            return 0; // String is contained within the string object itself
         } else {
-            // 非SSO字符串需要额外的堆分配
-            // 计算实际分配的容量(通常是2的幂次或接近的值)
+            // Non-SSO strings require additional heap allocation
+            // Calculate actual allocated capacity (usually power of 2 or close value)
             return str.capacity() + 1; // +1 for null terminator
         }
     }
-    
-    // 估计容器的内存占用
+
+    // Estimate container memory usage
     template <typename Container>
     static size_t estimateContainerMemory(const Container& container) {
         using ValueType = typename Container::value_type;
-        
+
         size_t memoryUsage = 0;
-        
-        // 对于vector和类似容器，考虑容量
+
+        // For vector and similar containers, consider capacity
         if constexpr(has_capacity<Container>::value) {
             memoryUsage += container.capacity() * sizeof(ValueType);
-        } 
+        }
 
-		// 对于list和类似容器，考虑节点开销
-		else if constexpr(std::is_same_v<Container, std::list<ValueType>> || 
+		// For list and similar containers, consider node overhead
+		else if constexpr(std::is_same_v<Container, std::list<ValueType>> ||
 			std::is_same_v<Container, std::forward_list<ValueType>>) {
-		  // 每个节点包含值和至少一个指针
+		  // Each node contains value and at least one pointer
 		  memoryUsage += container.size() * (sizeof(ValueType) + sizeof(void*));
 	  }
-	  // 对于set/map等树形容器
-	  else if constexpr(std::is_same_v<Container, std::set<ValueType>> || 
+	  // For set/map and other tree-based containers
+	  else if constexpr(std::is_same_v<Container, std::set<ValueType>> ||
 						std::is_same_v<Container, std::multiset<ValueType>> ||
 						std::is_same_v<Container, std::map<typename Container::key_type, typename Container::mapped_type>>) {
-		  // 红黑树节点通常包含值、颜色标记和三个指针
+		  // Red-black tree nodes typically contain value, color flag and three pointers
 		  memoryUsage += container.size() * (sizeof(ValueType) + sizeof(char) + 3 * sizeof(void*));
 	  }
-	  // 默认情况
+	  // Default case
 	  else {
 		  memoryUsage += container.size() * sizeof(ValueType);
 	  }
-	  
-	  // 递归处理容器内的string或嵌套容器
+
+	  // Recursively handle strings or nested containers within the container
 	  if constexpr(is_string_or_container_v<ValueType>) {
 		  for (const auto& item : container) {
 			  memoryUsage += estimateNestedMemory(item);
 		  }
 	  }
-	  
+
 	  return memoryUsage;
   }
-  
-  // 处理嵌套的string或容器
+
+  // Handle nested strings or containers
   template <typename T>
   static size_t estimateNestedMemory(const T& value) {
 	  if constexpr(std::is_same_v<T, std::string>) {
@@ -354,31 +354,31 @@ class MapMemoryMeasurer {
 		  return 0;
 	  }
   }
-  
-  // 检测类型是否为string或容器
+
+  // Detect if type is string or container
   template <typename T>
-  static constexpr bool is_string_or_container_v = 
+  static constexpr bool is_string_or_container_v =
 	  std::is_same_v<T, std::string> || is_container_v<T>;
-  
-  // 检测容器是否有capacity方法
+
+  // Detect if container has capacity method
   template <typename T, typename = void>
   struct has_capacity : std::false_type {};
-  
+
   template <typename T>
-  struct has_capacity<T, std::void_t<decltype(std::declval<T>().capacity())>> 
+  struct has_capacity<T, std::void_t<decltype(std::declval<T>().capacity())>>
 	  : std::true_type {};
-  
-  // 获取当前进程的内存使用量 (Resident Set Size)
+
+  // Get current process memory usage (Resident Set Size)
   static size_t getCurrentRSS() {
 #ifdef _WIN32
-	  // Windows实现
+	  // Windows implementation
 	  PROCESS_MEMORY_COUNTERS pmc;
 	  if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
 		  return pmc.WorkingSetSize;
 	  }
 	  return 0;
 #elif defined(__unix__) || defined(__linux__) || defined(__APPLE__)
-	  // Unix/Linux/Mac实现
+	  // Unix/Linux/Mac implementation
 	  FILE* file = fopen("/proc/self/statm", "r");
 	  if (file) {
 		  long rss = 0;
@@ -388,15 +388,15 @@ class MapMemoryMeasurer {
 		  }
 		  fclose(file);
 	  }
-	  
-	  // 如果上面的方法失败，尝试使用getrusage
+
+	  // If the above method fails, try using getrusage
 	  struct rusage usage;
 	  if (getrusage(RUSAGE_SELF, &usage) == 0) {
 		  return usage.ru_maxrss * 1024;
 	  }
 	  return 0;
 #else
-	  return 0; // 不支持的平台
+	  return 0; // Unsupported platform
 #endif
   }
 
@@ -460,7 +460,7 @@ void Obj_Manager::initial()
 	MapMemoryMeasurer::analyzeMapMemory(gr_manager.gr_inner.grid);
 
 	size_t diffMemory = MapMemoryMeasurer::measureByDifference(gr_manager.gr_inner.grid);
-	std::cout << "差值法测量内存: " << diffMemory << " 字节 (" 
+	std::cout << "Memory measured by difference method: " << diffMemory << " bytes ("
 	<< (diffMemory / 1024.0) << " KB)\n\n";
 
 
@@ -470,7 +470,7 @@ void Obj_Manager::initial()
     #ifdef _WIN32
     localtime_s(&local_tm, &now_time_t);
     #else
-    localtime_r(&now_time_t, &local_tm);  // POSIX标准
+    localtime_r(&now_time_t, &local_tm);  // POSIX standard
     #endif
 	std::stringstream ss;
     ss << OUTPUT_NAME << "_dx" << gr_manager.gr_inner.get_dx() << "_"
@@ -587,15 +587,14 @@ void Obj_Manager::output()
     #ifdef _WIN32
     localtime_s(&local_tm, &now_time_t);
     #else
-    localtime_r(&now_time_t, &local_tm);  // POSIX标准
+    localtime_r(&now_time_t, &local_tm);  // POSIX standard
     #endif
 	std::stringstream ss;
     ss << OUTPUT_NAME << "_"
        << std::put_time(&local_tm, "%Y%m%d_%H%M%S");
 
-	// Write flowfield
+	// Write mesh using Tecplot format
 	IO_Manager::pointer_me = &io_manager;
-	io_manager.method = 4;
 	io_manager.outfile = ss.str();
 
 	std::vector<unsigned int> out_vlevel = {C_max_level};
@@ -607,5 +606,5 @@ void Obj_Manager::output()
 	// }
 	io_manager.vlevel = out_vlevel;
 
-	io_manager.control();
+	io_manager.writeMesh();  // Write mesh in Tecplot format
 }

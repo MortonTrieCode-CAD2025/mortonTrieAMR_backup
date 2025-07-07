@@ -7,7 +7,6 @@
 #include "Grid_Manager.h"
 #include "Solid_Manager.h"
 #include "Morton_Assist.h"
-#include "utils.hpp"
 #include <climits>
 //////////////////////////////////////
 //              C_BIT               //

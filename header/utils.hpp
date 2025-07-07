@@ -25,95 +25,12 @@ inline uint log2 (uint x) {
 } 
 
 
-#define EXTRACT_MORTON_CONVERT_INDEX(bitset, start_pos) \
-    (static_cast<uint8_t>((bitset >> (start_pos - DIM)).to_ulong() & 0x7))
+// EXTRACT_MORTON_CONVERT_INDEX macro is now defined in Morton_Assist.h
+// MAX_2 and MAX_3 functionality is available as min_of_two/max_of_two/max_of_three in General.h
 
-#define MAX_2(a,b) ((a) > (b) ? (a) : (b))
-#define MAX_3(a,b,c) (((a) > (b)) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
-
-#include <chrono>
-class Timer
-{
-public:
-	Timer() : beg_(clock_::now()) {}
-	void reset() { beg_ = clock_::now(); }
-	double elapsed() const {
-		return std::chrono::duration_cast<second_>
-			(clock_::now() - beg_).count();
-	}
-
-private:
-	typedef std::chrono::high_resolution_clock clock_;
-	typedef std::chrono::duration<double, std::ratio<1> > second_;
-	std::chrono::time_point<clock_> beg_;
-};
-
-
-#if (DIM == 3)
- #if (STENCIL_SIZE == 19)
-/* D3Q19             
-                         ___________________              ________15_________  
-                        /:                 /|            /:                 /|
-                       / :      5         / |          14 :               11 |
-  z                   /__:______|_3_____ /  |         /________18________ /  |
- /|\ y               |   :      |/      |   |         |  10              |   7 
-  | /                | 2-:------0-------|-1 |         |   :      .       |   |
-  |/                 |   :     /|       |   |         |   :              |   |
-  o------->x         |   :----/-|-------|---|         8   :-------17-----9---|
-                     |  /    4  |       |  /          |  /               |   /
-                     | /        6       | /           | 12               | 13  
-                     |/_________________|/            |/_______16________|/    
-*/
-constexpr int ex[STENCIL_SIZE] = {
-    0,  
-    1, -1,  0,  0,  0,  0,  
-    1, -1,  1, -1,  1, -1,  1, -1,  0,  0,  0,  0};
-constexpr int ey[STENCIL_SIZE] = {
-    0,  
-    0,  0,  1, -1,  0,  0,  
-    1, -1, -1,  1,  0,  0,  0,  0,  1, -1,  1, -1};
-constexpr int ez[STENCIL_SIZE] = {
-    0,  
-    0,  0,  0,  0,  1, -1,  
-    0,  0,  0,  0,  1, -1, -1,  1,  1, -1, -1,  1};
-
-constexpr unsigned int e_inv[STENCIL_SIZE] = {0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17};
-
- #elif (STENCIL_SIZE == 27)
-/* D3Q27             
-                             ___________________              ________15_________              25________________19 
-                            /:                 /|            /:                 /|            /:                 /| 
-                           / :      5         / |          14 :               11 |           / :                / | 
-      z                   /__:______|_3_____ /  |         /________18________ /  |         23__:______________21  | 
-     /|\ y               |   :      |/      |   |         |  10              |   7         |   :              |   | 
-      | /                | 2-:------0-------|-1 |         |   :      .       |   |         |   :              |   | 
-      |/                 |   :     /|       |   |         |   :              |   |         |   :              |   | 
-      o------->x         |   :----/-|-------|---|         8   :-------17-----9---|         |   22-------------|--24 
-                         |  /    4  |       |  /          |  /               |   /         |  /               |  /  
-                         | /        6       | /           | 12               | 13          | /                | /   
-                         |/_________________|/            |/_______16________|/            20_________________26    
-*/
-           
-constexpr int ex[STENCIL_SIZE] = {
-    0, 
-    1, -1,  0,  0,  0,  0, 
-    1, -1,  1, -1,  1, -1,  1, -1,  0,  0,  0,  0, 
-    1, -1,  1, -1, -1,  1, -1,  1};
-constexpr int ey[STENCIL_SIZE] = {
-    0, 
-    0,  0,  1, -1, 0, 0, 
-    1, -1, -1,  1,  0,  0,  0,  0,  1, -1,  1, -1,
-    1, -1, -1,  1, -1,  1,  1, -1};
-constexpr int ez[STENCIL_SIZE] = {
-    0,  
-    0,  0,  0,  0,  1, -1,  
-    0,  0,  0,  0,  1, -1, -1,  1,  1, -1, -1,  1,
-    1, -1,  1, -1,  1, -1,  1, -1};
-
-constexpr unsigned int e_inv[STENCIL_SIZE] = {0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17, 20, 19, 22, 21, 24, 23, 26, 25};
-
- #endif
-#endif
+// Timer class is defined in General.h - no need to redefine here
+// Lattice velocity arrays (ex, ey, ez, e_inv) are defined in Constants.h - no need to redefine here
+// EXTRACT_MORTON_CONVERT_INDEX macro is now defined in Morton_Assist.h - no need to redefine here
 
 // constexpr D_morton xmorton_ref_0N = 17129119497016008704ULL;
 // constexpr D_morton xmorton_ref_0P = 1317624576693538816ULL;

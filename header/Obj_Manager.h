@@ -10,6 +10,7 @@
 #include "Grid_Manager.h"
 #include "Lat_Manager.hpp"
 #include "IO_Manager.h"
+#include "Solid_Manager.h"
 
 class Obj_Manager
 {

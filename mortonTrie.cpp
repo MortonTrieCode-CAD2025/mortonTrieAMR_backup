@@ -1,5 +1,5 @@
 #include "header/mortonTrie.hpp"
-#include "header/utils.hpp"
+#include "header/Morton_Assist.h"
 #include <iostream>
 
 #define LOOP_METHOD_FINDFIRST1

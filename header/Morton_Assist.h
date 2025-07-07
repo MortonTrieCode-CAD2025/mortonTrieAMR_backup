@@ -6,6 +6,11 @@
 #ifndef MORTON_ASSIST_H
 #define MORTON_ASSIST_H
 #include "General.h"
+#include "settings.hpp"
+
+// Morton-related utility macros
+#define EXTRACT_MORTON_CONVERT_INDEX(bitset, start_pos) \
+    (static_cast<uint8_t>((bitset >> (start_pos - DIM)).to_ulong() & 0x7))
 class Morton_Assist
 {
 	friend class Grid_Background;

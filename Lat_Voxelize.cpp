@@ -1,7 +1,6 @@
 #include "Lat_Manager.hpp"
 #include "Solid_Manager.h"
 #include "Morton_Assist.h"
-#include "utils.hpp"
 
 void Lat_Manager::voxelize()
 {

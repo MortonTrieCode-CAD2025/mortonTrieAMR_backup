@@ -10,7 +10,7 @@
 //#include "CGNS.h"
 // #include "VTK.h"
 // #include "io/HDF5H.h"
-#include "HDF5H.h"
+// #include "HDF5H.h"  // HDF5 mesh output disabled
 class IO_Manager
 {
 public:
@@ -21,10 +21,11 @@ public:
 public:
 	void control();                   ///< the maind funtion of the IO manager
 	void writeFlow(const D_int iter);
+	void writeMesh();                 ///< function to write mesh in Tecplot format
 private:
 	IO_TECPLOTH io_tecplot;
 //	CGNS io_cgns;
 	// VTK io_vtk;
-	HDF5H io_hdf5;
+	// HDF5H io_hdf5;  // HDF5 mesh output disabled
 };
 #endif

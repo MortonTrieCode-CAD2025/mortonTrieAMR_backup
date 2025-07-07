@@ -13,15 +13,11 @@
 void Solid_Manager::initial(const std::vector<Ini_Shape> &ini_shap)
 {
 	numb_solids = ini_shap.size();
-#ifdef SOLIDCENTER
- #if (C_CHECK_MORTON_BOUNDARY==1)
-	shape_offest_x0_grid = C_dx * C_x0b_offset;
-	shape_offest_y0_grid = C_dx * C_y0b_offset;
-  #if (C_DIMS==3)
-	shape_offest_z0_grid = C_dx * C_z0b_offset;
-  #endif
-
- #endif
+	// Initialize shape offset for unified domain positioning
+	shape_offset_x0_grid = C_domain[0];  // Use domain minimum as offset
+	shape_offset_y0_grid = C_domain[1];
+#if (C_DIMS==3)
+	shape_offset_z0_grid = C_domain[2];
 #endif
 	for (unsigned int i = 0; i < numb_solids; ++i)
 	{
@@ -29,17 +25,15 @@ void Solid_Manager::initial(const std::vector<Ini_Shape> &ini_shap)
 		shape_temp = ini_shap.at(i);
 		shape_solids.push_back(shape_temp);
 		shape_solids.at(i) = ini_shap.at(i);
-#ifdef SOLIDCENTER
-		shape_solids.at(i).shape_offest_x0 = shape_offest_x0_grid;
-		shape_solids.at(i).shape_offest_y0 = shape_offest_y0_grid;
- #if (C_DIMS==3)
-		shape_solids.at(i).shape_offest_z0 = shape_offest_z0_grid;
- #endif
+		// Set unified shape offsets for arbitrary positioning
+		shape_solids.at(i).shape_offset_x0 = shape_offset_x0_grid;
+		shape_solids.at(i).shape_offset_y0 = shape_offset_y0_grid;
+#if (C_DIMS==3)
+		shape_solids.at(i).shape_offset_z0 = shape_offset_z0_grid;
 #endif
 		// shape_solids.at(i).node = std::vector<Solid_Node>(shape_solids.at(i).numb_nodes);
 		switch (ini_shap.at(i).shape_type)
 		{
-#ifdef SOLIDCENTER
 		case circle:
 #if (C_DIMS == 2)		
 			if (shape_temp.length.size() != 3)
@@ -84,13 +78,8 @@ void Solid_Manager::initial(const std::vector<Ini_Shape> &ini_shap)
 		case geofile:
 			shape_solids.at(i).geofile(shape_temp.length.at(0), shape_temp.length.at(1), shape_temp.length.at(2), shape_solids.at(i).node, 0);
 			break;
-#endif
 		case geofile_stl:
-			#ifdef SOLIDCENTER
 			shape_solids.at(i).geofile_stl(shape_temp.length.at(0), shape_temp.length.at(1), shape_temp.length.at(2), 0);
-			#else
-			shape_solids.at(i).geofile_stl();
-			#endif
 			break;
 		default:
 			std::stringstream error;
@@ -131,7 +120,6 @@ void Solid_Manager::renew(unsigned int ishape, D_real t)
 {	
 	switch (shape_solids.at(ishape).shape_type)
 	{
-#ifdef SOLIDCENTER
 	case circle:
  #if (C_DIMS == 2)
 		shape_solids.at(ishape).cycle(shape_solids.at(ishape).node, t);
@@ -140,7 +128,6 @@ void Solid_Manager::renew(unsigned int ishape, D_real t)
 	case geofile:
 		shape_solids.at(ishape).geofile(shape_solids.at(ishape).node, t);
 		break;
-#endif
 	default:
 		break;
 	}

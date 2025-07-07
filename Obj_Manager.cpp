@@ -413,11 +413,10 @@ void Obj_Manager::initial()
 	ini_shape.at(0).shape_type = geofile_stl;
 	// ini_shape.at(0).bool_moving = true;
 	ini_shape.at(0).bool_moving = false;
-#ifdef SOLIDCENTER
-	ini_shape.at(0).length.push_back(C_xb / 2);
-    ini_shape.at(0).length.push_back(C_yb / 2);
-	ini_shape.at(0).length.push_back(C_zb / 2);
-#endif
+	// Set solid center position for arbitrary positioning within domain
+	ini_shape.at(0).length.push_back((C_domain[0] + C_domain[3]) / 2);  // x center
+	ini_shape.at(0).length.push_back((C_domain[1] + C_domain[4]) / 2);  // y center
+	ini_shape.at(0).length.push_back((C_domain[2] + C_domain[5]) / 2);  // z center
 
 	// ini_shape.at(0).shape_type = circle;
 	// ini_shape.at(0).bool_moving = true;

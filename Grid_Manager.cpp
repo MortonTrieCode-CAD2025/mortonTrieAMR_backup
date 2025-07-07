@@ -7,7 +7,9 @@
 #include "Grid_Manager.h"
 #include "Solid_Manager.h"
 #include "Morton_Assist.h"
+#include "Lat_Manager.hpp"
 #include <climits>
+#include <queue>
 //////////////////////////////////////
 //              C_BIT               //
 //  {---------------------------}   //
@@ -45,64 +47,39 @@ void Grid_Manager::initial()
 	{
 		Morton_Assist::compute_ref(ilevel);
 	}
-#ifdef SOLIDCENTER
-	D_uint nix = static_cast <D_uint> (C_xb / C_dx + C_eps) + C_x0b_offset; ///> lattice number in x-direction of original mesh
-	D_uint niy = static_cast <D_uint> (C_yb / C_dx + C_eps) + C_y0b_offset; ///> lattice number in y-direction of original mesh
- #if (C_DIMS==3)
-	D_uint niz = static_cast <D_uint> (C_zb / C_dx + C_eps) + C_z0b_offset; ///> lattice number in z-direction of original mesh
- #endif
-#else
-	D_uint nix = static_cast <D_uint> ((C_domain[3]-C_domain[0]) / C_dx + C_eps);
-	D_uint niy = static_cast <D_uint> ((C_domain[4]-C_domain[1]) / C_dx + C_eps);
- #if (C_DIMS==3)
-	D_uint niz = static_cast <D_uint> ((C_domain[5]-C_domain[2]) / C_dx + C_eps);
- #endif
+// Initialize unified domain boundaries
+for (int i = 0; i < 6; ++i) {
+	domain_bounds[i] = C_domain[i];
+}
+
+// Calculate lattice numbers based on unified domain
+D_uint nix = static_cast <D_uint> ((C_domain[3]-C_domain[0]) / C_dx + C_eps);
+D_uint niy = static_cast <D_uint> ((C_domain[4]-C_domain[1]) / C_dx + C_eps);
+#if (C_DIMS==3)
+D_uint niz = static_cast <D_uint> ((C_domain[5]-C_domain[2]) / C_dx + C_eps);
 #endif
 #if (C_DIMS==2)
-	Morton_Assist::mortonx_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(C_x0b_offset, 0)) << Morton_Assist::bit_otherlevel;
-	Morton_Assist::mortony_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, C_y0b_offset)) << Morton_Assist::bit_otherlevel;
+	Morton_Assist::mortonx_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, 0)) << Morton_Assist::bit_otherlevel;
+	Morton_Assist::mortony_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, 0)) << Morton_Assist::bit_otherlevel;
 #endif
-#ifdef SOLIDCENTER
- #if (C_DIMS==3)
-	Morton_Assist::mortonx_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(C_x0b_offset, 0, 0)) << Morton_Assist::bit_otherlevel;
-	Morton_Assist::mortony_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, C_y0b_offset, 0)) << Morton_Assist::bit_otherlevel;
-	Morton_Assist::mortonz_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, 0, C_z0b_offset)) << Morton_Assist::bit_otherlevel;
- #endif
-#else
- #if (C_DIMS==3)
+#if (C_DIMS==3)
 	Morton_Assist::mortonx_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, 0, 0)) << Morton_Assist::bit_otherlevel;
 	Morton_Assist::mortony_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, 0, 0)) << Morton_Assist::bit_otherlevel;
 	Morton_Assist::mortonz_min = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(0, 0, 0)) << Morton_Assist::bit_otherlevel;
- #endif
 #endif
 
-#ifdef SOLIDCENTER
-	xb_domain = C_dx * static_cast <D_real> (nix);
-	if (C_xb > xb_domain + C_eps)
-	{
-		std::stringstream infor;
-		infor << "set the maximum domain boundary in x direction as xb_domain = " << xb_domain << " instead of C_xb = " << C_xb << " in settings." << std::endl;
-		log_infor(infor.str(), Log_function::logfile);
-	}
-
-	yb_domain = C_dx * static_cast <D_real> (niy);
-	if (C_yb > yb_domain + C_eps)
-	{
-		std::stringstream infor;
-		infor << "set the maximum domain boundary in y direction as yb_domain = " << yb_domain << " instead of C_yb = " << C_yb << " in settings." << std::endl;
-		log_infor(infor.str(), Log_function::logfile);
-	}
-
- #if (C_DIMS == 3)
-	zb_domain = C_dx * static_cast <D_real> (niz);
-	if (C_zb > zb_domain + C_eps)
-	{
-		std::stringstream infor;
-		infor << "set the maximum domain boundary in z direction as zb_domain = " << zb_domain << " instead of C_zb = " << C_zb << " in settings." << std::endl;
-		log_infor(infor.str(), Log_function::logfile);
-	}
- #endif
+	// Log domain information
+	std::stringstream infor;
+	infor << "Unified domain boundaries initialized: [" << domain_bounds[0] << ", " << domain_bounds[1];
+#if (C_DIMS == 3)
+	infor << ", " << domain_bounds[2];
 #endif
+	infor << "] to [" << domain_bounds[3] << ", " << domain_bounds[4];
+#if (C_DIMS == 3)
+	infor << ", " << domain_bounds[5];
+#endif
+	infor << "]" << std::endl;
+	log_infor(infor.str(), Log_function::logfile);
 
 #if (C_DIMS==2)
 	Morton_Assist::mortonx_max = static_cast <D_morton> (Morton_Assist::pointer_me->morton_encode(nix, 0)) << Morton_Assist::bit_otherlevel;
@@ -166,6 +143,13 @@ void Grid_Manager::generate_inner()
 	D_mapint2 cells_level1 = {}; // cells centers at (ilevel - 1)
 	// std::array<D_mapint, 2> interface_x_temp, interface_y_temp, interface_z_temp; // temporary array to store domain boundaries at ilevel, only work if C_CHECK_MORTON_BOUNDARY = 1
 	std::array<D_mapint, 2> boundary_x_temp, boundary_y_temp, boundary_z_temp; // temporary array to store domain boundaries at ilevel, only work if C_CHECK_MORTON_BOUNDARY = 1
+
+	// Validate all solid geometries are within domain boundaries before processing
+	for (unsigned int ishape = 0; ishape < Solid_Manager::pointer_me->numb_solids; ++ishape)
+	{
+		validate_solid_within_domain(Solid_Manager::pointer_me->shape_solids.at(ishape).node, ishape);
+	}
+
 	for (unsigned int ishape = 0; ishape < Solid_Manager::pointer_me->numb_solids; ++ishape)
 	{
 		D_mapint nearest_center = {}; ///> nearest_center is the center node at the (C_max_level-1) level around the finest node
@@ -180,62 +164,7 @@ void Grid_Manager::generate_inner()
 #if(C_DIMS == 3)
 			xyz.at(2) = Solid_Manager::pointer_me->shape_solids.at(ishape).node.at(ipoint).z;
 #endif
-#if (C_CHECK_MORTON_BOUNDARY == 1)
-			// bool exceed_domain = false;
- #ifdef SOLIDCENTER
-			if (xyz.at(0) > xb_domain + C_eps)
-// #else
-			// if ((xyz.at(0) < (C_domain[0]+C_eps)) || (xyz.at(0) > (C_domain[3]+C_eps)))
-// #endif
-			{
-				std::stringstream warning;
-				warning << "coordinate x = " << xyz.at(0) << " of point " << ipoint << " in shape "<< ishape << " exceeds the compuational domain where xb_domain in range of (" << C_domain[0] << ", " << C_domain[3] << ")" << std::endl;
-				log_error(warning.str(), Log_function::logfile);
-				// exceed_domain = true;
-			}
-// #ifdef SOLIDCENTER
-			if (xyz.at(1) > yb_domain + C_eps)
-// #else
-			// if ((xyz.at(1) < (C_domain[1]+C_eps)) || (xyz.at(1) > (C_domain[4]+C_eps)))
-// #endif
-			{
-				std::stringstream warning;
-				warning << "coordinate y = " << xyz.at(1) << " of point " << ipoint << " in shape " << ishape << " exceeds the compuational domain where yb_domain in range of (" << C_domain[1] << ", " << C_domain[4] << ")" << std::endl;
-				log_error(warning.str(), Log_function::logfile);
-				// exceed_domain = true;
-			}
-#if(C_DIMS == 2)
-			if (exceed_domain)
-			{
-				xyz = temp_xyz;
-			}
-			else
-			{
-				temp_xyz = xyz;
-			}
-#endif
-#if(C_DIMS == 3)
-// #ifdef SOLIDCENTER
-			if (xyz.at(2) > zb_domain  + C_eps)
-// #else
-			// if ((xyz.at(2) < (C_domain[2]+C_eps)) || (xyz.at(2) > (C_domain[5]+C_eps)))
-#endif
-			{
-				std::stringstream warning;
-				warning << "coordinate z = " << xyz.at(2) << "of point " << ipoint << " in shape " << ishape << " exceeds the compuational domain where zb_domain in range of (" << C_domain[2] << ", " << C_domain[5] << ")" << std::endl;
-				log_error(warning.str(), Log_function::logfile);
-				// exceed_domain = true;
-			}
-			// if (exceed_domain)
-			// {
-			// 	xyz = temp_xyz;
-			// }
-			// else
-			// {
-			// 	temp_xyz = xyz;
-			// }
- #endif
-#endif
+			// Boundary validation is now performed upfront for all solids
 			find_nodes_near_solid(ilevel, xyz, refine_nodes);
             /* After the function<find_nodes_near_solid>, "refine_nodes" and "map_node_near_solid" are generated. */
 			//
@@ -293,12 +222,10 @@ void Grid_Manager::generate_inner()
 		}
 
 		// mark nodes within C_extend_ghost grid space from nodes in (map_near_solid) inside the solid
-#ifdef SOLIDCENTER
 		if (Solid_Manager::pointer_me->shape_solids.at(ishape).bool_enclosed == true)
 		{
 			mark_ghost_points(ilevel, refine_nodes);
 		}
-#endif
 
 		// find cells at (ilevel - 1) near the solid
 		D_mapint nodes_level1 = nearest_center;
@@ -307,11 +234,7 @@ void Grid_Manager::generate_inner()
 		// generate the innest grids, and create the overlap shell between two resolution grids
 		//   the shell in C_max_level-1 resolution: nodes_level1
 		//   the shell in C_max_level resolution: nodes_level
-		#ifdef SOLIDCENTER
 		search_nodes_near_solid(ilevel, nearest_center, nodes_level1, refine_nodes, boundary_x_temp, boundary_y_temp, boundary_z_temp);
-		#else
-		search_nodes_near_solid(ilevel, nearest_center, nodes_level1, refine_nodes);
-		#endif
 
 		for (D_mapint::iterator iter = nodes_level1.begin(); iter != nodes_level1.end(); ++iter)
 		{
@@ -345,7 +268,6 @@ void Grid_Manager::generate_inner()
 
 	// find a node inside each encolsed geometry and do flood fill
 	//   to delete nodes inside the solid
-	#ifdef SOLIDCENTER
 	for (unsigned int ishape = 0; ishape < Solid_Manager::pointer_me->numb_solids; ++ishape)
 	{
 		if (Solid_Manager::pointer_me->shape_solids.at(ishape).bool_enclosed == true)
@@ -442,17 +364,11 @@ void Grid_Manager::generate_inner()
 				log_infor(infor.str(), Log_function::logfile);
 			}
 
-			// mark fluid nodes inside the solid 
+			// mark fluid nodes inside the solid
 			//   and delete nodes inside the solid
-			#ifdef SOLIDCENTER
 			flood_fill_inner(ilevel, keyin, cells_level1, refine_nodes, boundary_x_temp, boundary_y_temp, boundary_z_temp);
-			#else
-			flood_fill_inner(ilevel, keyin, cells_level1, refine_nodes);
-			#endif
 		} // end if solid is enclosed
 	}
-
-	#else
 
 	for (auto ishape : Solid_Manager::pointer_me->shape_solids)
 	{
@@ -475,15 +391,9 @@ void Grid_Manager::generate_inner()
 		delete_refineNodes_inside_solid(ilevel, outest_refine_node, refine_nodes);
 	}
 
-	#endif
-
 	// find the outer layer
 	D_mapint map_outer = {};
-	#ifdef SOLIDCENTER
 	search_outer_boundary(ilevel, cells_level1, cells_level1, refine_nodes, map_outer, boundary_x_temp, boundary_y_temp, boundary_z_temp);
-	#else
-	search_outer_boundary(ilevel, cells_level1, cells_level1, refine_nodes, map_outer);
-	#endif
 
 	// add boundary nodes to refine_nodes
 	for (D_mapint::iterator iter = gr_inner.fine2coarse.at(iboundary1).begin(); iter != gr_inner.fine2coarse.at(iboundary1).end(); ++iter)
@@ -566,53 +476,35 @@ void Grid_Manager::find_nodes_near_solid(unsigned int ilevel, std::array<D_real,
 	x_index = xyz.at(0) / grid_ptr->dx;
 	y_index = xyz.at(1) / grid_ptr->dx;
 
-#if (C_CHECK_MORTON_BOUNDARY == 1)
- #ifdef SOLIDCENTER
-	if (xyz.at(0) >= xb_domain)
+	// Boundary validation is performed upfront, so coordinates are guaranteed to be within domain
+	// Clamp coordinates to ensure they stay within computational bounds for grid indexing
+	if (xyz.at(0) >= domain_bounds[3])
 	{
-		// to ensure the solid points located in a cell in the computational domain
-		x_index = xb_domain / grid_ptr->dx - C_eps;
-		//std::stringstream warning;
-		//warning << "the x cooridnat solid node is " << xyz.at(0) << ": x boundary of the background mesh is" << C_xb << std::endl;
-		//log_warning(warning.str(), Log_function::logfile);
+		x_index = domain_bounds[3] / grid_ptr->dx - C_eps;
 	}
-	if (xyz.at(1) >= yb_domain )
+	if (xyz.at(1) >= domain_bounds[4])
 	{
-		y_index = yb_domain  / grid_ptr->dx - C_eps;
-		//std::stringstream warning;
-		//warning << "the y cooridnat solid node is " << xyz.at(1) << ": y boundary of the background mesh is" << yb_domain  << std::endl;
-		//log_warning(warning.str(), Log_function::logfile);
+		y_index = domain_bounds[4] / grid_ptr->dx - C_eps;
 	}
-  #if(C_DIMS == 3)
-	if (xyz.at(2) >= zb_domain )
+#if(C_DIMS == 3)
+	if (xyz.at(2) >= domain_bounds[5])
 	{
-		z_index = zb_domain  / grid_ptr->dx - C_eps;
-		//std::stringstream warning;
-		//warning << "the z cooridnat solid node is " << xyz.at(0) << ": z boundary of the background mesh is" << zb_domain  << std::endl;
-		//log_warning(warning.str(), Log_function::logfile);
+		z_index = domain_bounds[5] / grid_ptr->dx - C_eps;
 	}
-  #endif
-	if (xyz.at(0) < 0)
+#endif
+	if (xyz.at(0) < domain_bounds[0])
 	{
-		std::stringstream error;
-		error << "the x cooridnate of solid node is less than 0" << std::endl;
-		log_error(error.str(), Log_function::logfile);
+		x_index = domain_bounds[0] / grid_ptr->dx + C_eps;
 	}
-	if (xyz.at(1) < 0)
+	if (xyz.at(1) < domain_bounds[1])
 	{
-		std::stringstream error;
-		error << "the y cooridnate of solid node is less than 0" << std::endl;
-		log_error(error.str(), Log_function::logfile);
+		y_index = domain_bounds[1] / grid_ptr->dx + C_eps;
 	}
-  #if(C_DIMS == 3)
-	if (xyz.at(2) < 0)
+#if(C_DIMS == 3)
+	if (xyz.at(2) < domain_bounds[2])
 	{
-		std::stringstream error;
-		error << "the z cooridnate of solid node is less than 0" << std::endl;
-		log_error(error.str(), Log_function::logfile);
+		z_index = domain_bounds[2] / grid_ptr->dx + C_eps;
 	}
-  #endif
- #endif
 #endif
 	// xint = static_cast<D_uint>((xyz.at(0)-C_domain[0]) / grid_ptr->dx + C_eps);
 	// yint = static_cast<D_uint>((xyz.at(1)-C_domain[1]) / grid_ptr->dx + C_eps);
@@ -798,7 +690,6 @@ void Grid_Manager::initial_map_node_IB(unsigned int ilevel)
 * @param[out] refine_nodes        nodes (C_max_level) near the solid.
 * @note Here param[in]:ilevel is C_max_level.
 */
-#ifdef SOLIDCENTER
 void Grid_Manager::mark_ghost_points(unsigned int ilevel, D_mapint2& refine_nodes)
 {
 	unsigned int extend_x0 = C_extend_ghost;
@@ -1058,7 +949,6 @@ void Grid_Manager::mark_ghost_points(unsigned int ilevel, D_mapint2& refine_node
 
 
 }
-#endif
 
 /**
 * @brief      function to search nodes (C_max_level - 1) within a predefined distance (C_extend_inner/2) from solid nodes.
@@ -1068,7 +958,6 @@ void Grid_Manager::mark_ghost_points(unsigned int ilevel, D_mapint2& refine_node
 * @param[out] refine_nodes        nodes (C_max_level) near the solid.
 * @note Here param[in]:ilevel is C_max_level.
 */
-#ifdef SOLIDCENTER
 void Grid_Manager::search_nodes_near_solid(unsigned int ilevel, D_mapint &nearest_center, D_mapint &nodes_level1, D_mapint2 &refine_nodes, std::array<D_mapint, 2> &boundary_x_temp, std::array<D_mapint, 2> &boundary_y_temp, std::array<D_mapint, 2> &boundary_z_temp)
 {
 	Grid * grid_ptr;
@@ -1327,10 +1216,10 @@ void Grid_Manager::search_nodes_near_solid(unsigned int ilevel, D_mapint &neares
 #endif		
 	}
 
-	D_real bx0_temp = Solid_Manager::pointer_me->shape_offest_x0_grid + C_eps;
-	D_real by0_temp = Solid_Manager::pointer_me->shape_offest_y0_grid + C_eps;
+	D_real bx0_temp = Solid_Manager::pointer_me->shape_offset_x0_grid + C_eps;
+	D_real by0_temp = Solid_Manager::pointer_me->shape_offset_y0_grid + C_eps;
 #if(C_DIMS == 3)
-	D_real bz0_temp = Solid_Manager::pointer_me->shape_offest_z0_grid + C_eps;
+	D_real bz0_temp = Solid_Manager::pointer_me->shape_offset_z0_grid + C_eps;
 #endif
 	// generate nodes at ilevel in refine_nodes based on those at ilevel - 1 in nodes_level1 
 	for (D_mapint::iterator iter = nodes_level1.begin(); iter != nodes_level1.end(); ++iter)
@@ -1585,7 +1474,7 @@ void Grid_Manager::search_nodes_near_solid(unsigned int ilevel, D_mapint &neares
 
 	}
 }
-#else 
+
 void Grid_Manager::search_nodes_near_solid(const unsigned int ilevel, D_mapint &nearest_center, D_mapint &nodes_level1, D_mapint2 &refine_nodes)
 {
 	Grid * grid_ptr;
@@ -1676,12 +1565,10 @@ void Grid_Manager::search_nodes_near_solid(const unsigned int ilevel, D_mapint &
 #endif		
 	} // end for points in nearest_center
 
-#ifdef SOLIDCENTER
-	D_real bx0_temp = Solid_Manager::pointer_me->shape_offest_x0_grid + C_eps;
-	D_real by0_temp = Solid_Manager::pointer_me->shape_offest_y0_grid + C_eps;
+	D_real bx0_temp = Solid_Manager::pointer_me->shape_offset_x0_grid + C_eps;
+	D_real by0_temp = Solid_Manager::pointer_me->shape_offset_y0_grid + C_eps;
 #if(C_DIMS == 3)
-	D_real bz0_temp = Solid_Manager::pointer_me->shape_offest_z0_grid + C_eps;
-#endif
+	D_real bz0_temp = Solid_Manager::pointer_me->shape_offset_z0_grid + C_eps;
 #endif
 	// generate nodes at ilevel in refine_nodes based on those at ilevel - 1 in nodes_level1 
 	for (D_mapint::iterator iter = nodes_level1.begin(); iter != nodes_level1.end(); ++iter)
@@ -1894,7 +1781,6 @@ void Grid_Manager::search_nodes_near_solid(const unsigned int ilevel, D_mapint &
 	
 }
 
-#endif
 
 /**
 * @brief      function to delete fluid nodes inside the solid.
@@ -1904,11 +1790,7 @@ void Grid_Manager::search_nodes_near_solid(const unsigned int ilevel, D_mapint &
 * @param[out] refine_nodes        nodes (C_max_level) near the solid.
 * @note This function will be called only if shape.enclosed == true.
 */
-#ifdef SOLIDCENTER
 void Grid_Manager::flood_fill_inner(unsigned int ilevel, D_morton &key_in, D_mapint2 &nodes_level1, D_mapint2 &refine_nodes, std::array<D_mapint, 2> &boundary_x_temp, std::array<D_mapint, 2> &boundary_y_temp, std::array<D_mapint, 2> &boundary_z_temp)
-#else
-void Grid_Manager::flood_fill_inner(unsigned int ilevel, D_morton &key_in, D_mapint2 &nodes_level1, D_mapint2 &refine_nodes)
-#endif
 {
 	D_morton morton_xyz = Morton_Assist::morton_xyz.at(ilevel);
 	std::vector<D_morton> stk;
@@ -2029,11 +1911,7 @@ void Grid_Manager::flood_fill_inner(unsigned int ilevel, D_morton &key_in, D_map
 * @param[out] boundary_z_temp          tempory array to store domain boundaries when z = xmin and z = zmax (only works when C_CHECK_MORTON_BOUNDARY = 1).
 * @note  Nodes on the numerical boundaries will be used to transfer informtion between different refinement level.
 */
-#ifdef SOLIDCENTER
 void Grid_Manager::search_outer_boundary(unsigned int ilevel, D_mapint2 &iter_nodes, D_mapint2 &exist_nodes, D_mapint2 &refine_nodes_temp, D_mapint &map_outer, std::array<D_mapint, 2> &boundary_x_temp, std::array<D_mapint, 2> &boundary_y_temp, std::array<D_mapint, 2> &boundary_z_temp)
-#else
-void Grid_Manager::search_outer_boundary(unsigned int ilevel, D_mapint2 &iter_nodes, D_mapint2 &exist_nodes, D_mapint2 &refine_nodes_temp, D_mapint &map_outer)
-#endif
 {
 	unsigned int ilevel_1 = ilevel - 1;
 	Grid * grid_ptr;
@@ -5142,10 +5020,10 @@ void Grid_Manager::generate_intermediate(unsigned int ilevel)
 	bool bool_extend_z0 = true, bool_extend_z1 = true;
 #endif
 
-	D_real bx0_temp = Solid_Manager::pointer_me->shape_offest_x0_grid + C_eps;
-	D_real by0_temp = Solid_Manager::pointer_me->shape_offest_y0_grid + C_eps;
+	D_real bx0_temp = Solid_Manager::pointer_me->shape_offset_x0_grid + C_eps;
+	D_real by0_temp = Solid_Manager::pointer_me->shape_offset_y0_grid + C_eps;
 #if(C_DIMS == 3)
-	D_real bz0_temp = Solid_Manager::pointer_me->shape_offest_z0_grid + C_eps;
+	D_real bz0_temp = Solid_Manager::pointer_me->shape_offset_z0_grid + C_eps;
 #endif
 	for (unsigned int iextend = 1; iextend < (extend_temp + C_extend_max); ++iextend)
 	{
@@ -9182,15 +9060,28 @@ void Grid_Manager::identify_domain_boundary()
  * @brief delete the refine nodes inside the solid by the BFS method
  * @date 2024-05-07
 */
-#ifndef SOLIDCENTER
 void Grid_Manager::delete_refineNodes_inside_solid(const uint ilevel, const D_morton floor_fill_point, D_mapint2 &refine_nodes)
 {
-	BFS<D_morton, std::array<int, 2>, D_map_define<bool>> bfs(refine_nodes);
+	// Manual BFS implementation using std::queue
+	std::queue<D_morton> bfs_queue;
+	D_map_define<bool> visited;
 	D_mapint2 rst_refine_nodes;
 
-	while (bfs.front <= bfs.rear) {
-		D_morton current_code = bfs.dequeue();
-		
+	// Initialize visited map
+	for (auto& refine_pair : refine_nodes) {
+		visited.insert(std::make_pair(refine_pair.first, false));
+	}
+
+	// Add floor_fill_point as starting point for BFS
+	if (refine_nodes.find(floor_fill_point) != refine_nodes.end()) {
+		bfs_queue.push(floor_fill_point);
+		visited.at(floor_fill_point) = true;
+	}
+
+	while (!bfs_queue.empty()) {
+		D_morton current_code = bfs_queue.front();
+		bfs_queue.pop();
+
 		D_morton ngbr_code[C_Q-1];
 		for (D_int i_q = 1; i_q < C_Q; ++i_q) {
             ngbr_code[i_q-1] = Morton_Assist::find_neighbor(current_code, C_max_level, ex[i_q], ey[i_q], ez[i_q]);
@@ -9202,15 +9093,18 @@ void Grid_Manager::delete_refineNodes_inside_solid(const uint ilevel, const D_mo
 
 			if (ngbr_ptr != refine_nodes.end()) {
 				if (ngbr_ptr->second.at(0) == flag_refine) {
-					bfs.enqueue(ngbr_);
+					if (!visited.at(ngbr_)) {
+						bfs_queue.push(ngbr_);
+						visited.at(ngbr_) = true;
+					}
 					rst_refine_nodes.insert(make_pair(ngbr_, ngbr_ptr->second));
 				}
 				else if (ngbr_ptr->second.at(0) == flag_near_solid) {
 					rst_refine_nodes.insert(make_pair(ngbr_, ngbr_ptr->second));
 				}
-				
+
 			}
-			
+
 		}
 	}
 
@@ -9220,4 +9114,86 @@ void Grid_Manager::delete_refineNodes_inside_solid(const uint ilevel, const D_mo
 		refine_nodes.insert(it);
 	}
 }
+
+/**
+ * @brief Validate that all solid nodes are within the computational domain boundaries
+ * @param[in] solid_nodes Vector of solid nodes to validate
+ * @param[in] shape_id Shape identifier for error reporting
+ * @return true if all nodes are within domain, false otherwise
+ */
+bool Grid_Manager::validate_solid_within_domain(const std::vector<Solid_Node>& solid_nodes, unsigned int shape_id)
+{
+	bool all_within_domain = true;
+	std::stringstream violation_details;
+
+	for (size_t i = 0; i < solid_nodes.size(); ++i) {
+		const Solid_Node& node = solid_nodes[i];
+
+		// Check X boundaries
+		if (node.x < domain_bounds[0] || node.x > domain_bounds[3]) {
+			all_within_domain = false;
+			violation_details << "Shape " << shape_id << ", Node " << i
+							 << ": X coordinate " << node.x
+							 << " is outside domain bounds [" << domain_bounds[0]
+							 << ", " << domain_bounds[3] << "]\n";
+		}
+
+		// Check Y boundaries
+		if (node.y < domain_bounds[1] || node.y > domain_bounds[4]) {
+			all_within_domain = false;
+			violation_details << "Shape " << shape_id << ", Node " << i
+							 << ": Y coordinate " << node.y
+							 << " is outside domain bounds [" << domain_bounds[1]
+							 << ", " << domain_bounds[4] << "]\n";
+		}
+
+#if (C_DIMS == 3)
+		// Check Z boundaries
+		if (node.z < domain_bounds[2] || node.z > domain_bounds[5]) {
+			all_within_domain = false;
+			violation_details << "Shape " << shape_id << ", Node " << i
+							 << ": Z coordinate " << node.z
+							 << " is outside domain bounds [" << domain_bounds[2]
+							 << ", " << domain_bounds[5] << "]\n";
+		}
 #endif
+	}
+
+	if (!all_within_domain) {
+		report_boundary_violation_and_exit(violation_details.str());
+	}
+
+	return all_within_domain;
+}
+
+/**
+ * @brief Report boundary violation details and exit the program gracefully
+ * @param[in] violation_details String containing detailed violation information
+ */
+void Grid_Manager::report_boundary_violation_and_exit(const std::string& violation_details)
+{
+	std::cerr << "\n=== SOLID GEOMETRY BOUNDARY VIOLATION DETECTED ===" << std::endl;
+	std::cerr << "ERROR: Solid geometry extends outside the computational domain boundaries." << std::endl;
+	std::cerr << "\nDomain boundaries: [" << domain_bounds[0] << ", " << domain_bounds[1];
+#if (C_DIMS == 3)
+	std::cerr << ", " << domain_bounds[2];
+#endif
+	std::cerr << "] to [" << domain_bounds[3] << ", " << domain_bounds[4];
+#if (C_DIMS == 3)
+	std::cerr << ", " << domain_bounds[5];
+#endif
+	std::cerr << "]" << std::endl;
+
+	std::cerr << "\nViolation details:\n" << violation_details << std::endl;
+	std::cerr << "SOLUTION: Please adjust the solid geometry position or increase the domain size." << std::endl;
+	std::cerr << "========================================================" << std::endl;
+
+	// Log to file if available
+	if (Log_function::logfile && Log_function::logfile->is_open()) {
+		*Log_function::logfile << "BOUNDARY VIOLATION: " << violation_details << std::endl;
+		Log_function::logfile->flush();
+	}
+
+	// Exit gracefully
+	std::exit(EXIT_FAILURE);
+}

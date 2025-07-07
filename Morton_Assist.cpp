@@ -200,7 +200,6 @@ D_morton Morton_Assist::morton_encode(D_uint ix, D_uint iy, D_uint iz)
 * @param[out] y        y coordinate.
 * @param[out] z        z coordinate.
 */
-#ifdef SOLIDCENTER
 void Morton_Assist::compute_coordinate(D_morton key, unsigned int ilevel, D_real &x, D_real &y, D_real &z)
 {
 	D_real x_temp = 0.;
@@ -310,5 +309,3 @@ void Morton_Assist::compute_coordinate(D_morton key, unsigned int ilevel, D_real
 	
 // 	return rst_code;
 // }
-
-#endif

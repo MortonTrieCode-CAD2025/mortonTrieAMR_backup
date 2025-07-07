@@ -8,6 +8,9 @@
 #include "General.h"
 #include "Grid_Class.h"
 #include "Morton_Assist.h"
+
+// Forward declaration for Solid_Node
+struct Solid_Node;
 /**
 * @brief This class used to manager all grid related information.
 */
@@ -20,16 +23,11 @@ class Grid_Manager
 public:
 	static Grid_Manager* pointer_me;         ///< pointer points to the class itself
 	D_uint nx, ny; ///< maximum number of nodes in the x and y direction of the background mesh
-#ifdef SOLIDCENTER
-	D_real xb_domain, yb_domain;
-	std::array< std::array<D_mapNodePtr, 2>, C_max_level + 1> bk_boundary_x, bk_boundary_y; ///< domain boundary, i.e. bk_boundary_x[0] is the boudnary where x=0
-#endif
-	
+	D_real domain_bounds[6]; ///< unified domain boundaries: {x_min, y_min, z_min, x_max, y_max, z_max}
+	std::array< std::array<D_mapNodePtr, 2>, C_max_level + 1> bk_boundary_x, bk_boundary_y; ///< domain boundary, i.e. bk_boundary_x[0] is the boundary where x=0
+
 #if (C_DIMS == 3)
 	D_uint nz;
- #ifdef SOLIDCENTER
-	D_real zb_domain;
- #endif
 	std::array< std::array<D_mapNodePtr, 2>, C_max_level + 1>  bk_boundary_z;
 #endif
 	std::array<Grid_NIB, C_max_level> gr_NoIB;
@@ -102,25 +100,19 @@ private:
 #if	(C_FSI_INTERFACE == 1)
 	void initial_map_node_IB(unsigned int ilevel);
 #endif
-#ifdef SOLIDCENTER
 	void mark_ghost_points(unsigned int ilevel, D_mapint2& refine_nodes);
 	void search_nodes_near_solid(unsigned int ilevel, D_mapint &nearest_center, D_mapint &nodes_level1, D_mapint2  &refine_nodes, std::array<D_mapint, 2> &boundary_x_temp, std::array<D_mapint, 2> &boundary_y_temp, std::array<D_mapint, 2> &boundary_z_temp);
-#endif
-#ifndef SOLIDCENTER
 	void search_nodes_near_solid(const unsigned int ilevel, D_mapint &nearest_center, D_mapint &nodes_level1, D_mapint2  &refine_nodes);
-#endif
-#ifdef SOLIDCENTER
 	void flood_fill_inner(unsigned int ilevel, D_morton &key_in, D_mapint2 &nodes_level1, D_mapint2  &refine_nodes, std::array<D_mapint, 2> &boundary_x_temp, std::array<D_mapint, 2> &boundary_y_temp, std::array<D_mapint, 2> &boundary_z_temp);
-#else
 	void flood_fill_inner(unsigned int ilevel, D_morton &key_in, D_mapint2 &nodes_level1, D_mapint2  &refine_nodes);
 	void delete_refineNodes_inside_solid(const uint ilevel, const D_morton floor_fill_point, D_mapint2 &refine_nodes);
-#endif
 
-#ifdef SOLIDCENTER
 	void search_outer_boundary(unsigned int ilevel, D_mapint2 &iter_nodes, D_mapint2 &exist_nodes, D_mapint2 &refine_nodes_temp, D_mapint &map_outer, std::array<D_mapint, 2> &boundary_x_temp, std::array<D_mapint, 2> &boundary_y_temp, std::array<D_mapint, 2> &boundary_z_temp);
-#else
 	void search_outer_boundary(unsigned int ilevel, D_mapint2 &iter_nodes, D_mapint2 &exist_nodes, D_mapint2 &refine_nodes_temp, D_mapint &map_outer);
-#endif
+
+	// Unified boundary validation functions
+	bool validate_solid_within_domain(const std::vector<Solid_Node>& solid_nodes, unsigned int shape_id);
+	void report_boundary_violation_and_exit(const std::string& violation_details);
 //#if(C_DIMS==3)
 //	void check_isolate_nodes(unsigned int ilevel);
 //#endif
@@ -156,10 +148,11 @@ private:
 	template <class T_grid, class T_node>
 	void reconstruct_numerical_boundary_adding(const unsigned int ilevel, T_grid &grid_ptr, T_node node_temp, D_mapint &map_add_temp, D_mapint &map_add_nodes_out, D_mapint &map_remove_nodes_out);
 	//void reconstruct_numerical_boundary_adding(const unsigned int ilevel, Grid_NIB &grid_ptr, Node node_temp, D_mapint &map_add_temp, D_mapint &map_add_nodes_out);
+#endif
+
 #if (C_DEBUG == 1)
 public:
 	D_mapint output_points_update;
-#endif
 #endif
 
 };

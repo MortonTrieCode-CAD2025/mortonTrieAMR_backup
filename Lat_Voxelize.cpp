@@ -23,15 +23,13 @@ void Lat_Manager::voxelize()
 
 void Lat_Manager::update_boundary_lattices()
 {
-#ifdef SOLDICENTER
-#ifdef SOLDICENTER
+    // Unified boundary handling for arbitrary solid positioning
     D_mapNodePtr* bdEast = &(Grid_Manager::pointer_me->bk_boundary_x.at(0).at(1));
     D_mapNodePtr* bdWest = &(Grid_Manager::pointer_me->bk_boundary_x.at(0).at(0));
     D_mapNodePtr* bdNorth = &(Grid_Manager::pointer_me->bk_boundary_y.at(0).at(1));
     D_mapNodePtr* bdSouth = &(Grid_Manager::pointer_me->bk_boundary_y.at(0).at(0));
     D_mapNodePtr* bdTop = &(Grid_Manager::pointer_me->bk_boundary_z.at(0).at(1));
     D_mapNodePtr* bdBot = &(Grid_Manager::pointer_me->bk_boundary_z.at(0).at(0));
-#endif
 
 
 #ifndef BC_NO_GHOST
@@ -311,7 +309,6 @@ void Lat_Manager::update_boundary_lattices()
     // std::cout << "----------- ----------------- -----------\n" << std::endl;
 
 #endif
-#endif
 }
 
 
@@ -321,7 +318,6 @@ void Lat_Manager::update_boundary_lattices()
  */
 void Lat_Manager::update_outerLevel_lattices()
 {
-#ifndef SOLIDCENTER
     D_setLat lat_bc_total;
     for (auto i_bc : lat_bc) {
         lat_bc_total.insert(i_bc.begin(),i_bc.end());
@@ -381,7 +377,6 @@ void Lat_Manager::update_outerLevel_lattices()
         } // for grid
     } // for level
 
-#endif
 }
 
 
@@ -490,7 +485,6 @@ void Lat_Manager::update_innerLevel_lattices()
  */
 void Lat_Manager::update_overlap_lattices()
 {
-#ifndef SOLIDCENTER
     auto& lat_f_alias = lat_f;
     auto& overlap_c2f_alias = lat_overlap_C2F;
 
@@ -697,13 +691,11 @@ void Lat_Manager::update_overlap_lattices()
         }
     }
 
-#endif
 }
 
 
 void Lat_Manager::update_cutting_lattices()
 {
-#ifdef SOLDICENTER
     Grid_IB* solidgrid_ptr = &(Grid_Manager::pointer_me->gr_inner);
     double dx_innerLat = dx.at(C_max_level);
     double box_halfextent[3] = {dx_innerLat*0.5f, dx_innerLat*0.5f, dx_innerLat*0.5f};
@@ -785,7 +777,6 @@ void Lat_Manager::update_cutting_lattices()
         lat_f.at(C_max_level).erase(i_srf);
         lat_sf.insert(make_pair(i_srf, Cell(Cell_Flag::SURFACE)));
     }
-#endif
 }
 
 
@@ -795,20 +786,22 @@ void Lat_Manager::update_cutting_lattices()
  */
 void Lat_Manager::propagate_fluid_lattices()
 {
-#ifndef SOLIDCENTER
-    // #ifdef SOLIDCENTER
-    // std::vector<D_morton> queue(lat_f.at(C_max_level).size());
-    // D_map_define<bool> visited;
-    // // initial visited
-    // for (auto iter : lat_f.at(C_max_level))
-    //     visited.insert(make_pair(iter.first, false));
-    // D_int front = -1, rear = -1;
-    // #else
-    BFS<D_morton, Cell, D_map_define<bool>> bfs(lat_f.at(C_max_level));
-    // #endif
+    // Manual BFS implementation
+    std::vector<D_morton> queue(lat_f.at(C_max_level).size());
+    D_map_define<bool> visited;
+    D_int front = -1, rear = -1;
 
-    while (bfs.front <= bfs.rear) {
-        D_morton current_code = bfs.dequeue();
+    // Initialize visited map and find starting points
+    for (auto& lat_pair : lat_f.at(C_max_level)) {
+        visited.insert(std::make_pair(lat_pair.first, false));
+        // Add FLUID cells as starting points for BFS
+        if (lat_pair.second.flag == FLUID) {
+            enqueue(lat_pair.first, front, rear, queue, visited);
+        }
+    }
+
+    while (front <= rear) {
+        D_morton current_code = dequeue(front, rear, queue);
         lat_f.at(C_max_level).at(current_code).flag = (lat_f.at(C_max_level).at(current_code).flag == TBD) ? FLUID : (lat_f.at(C_max_level).at(current_code).flag);
 
         D_morton ngbr_code[C_Q-1];
@@ -823,7 +816,7 @@ void Lat_Manager::propagate_fluid_lattices()
                 auto ngbr_ptr = lat_f.at(C_max_level).find(ngbr_code[i_q]);
                 if (ngbr_ptr != lat_f.at(C_max_level).end()) { // ngbr_code[i_q] is fluid
                     if (ngbr_ptr->second.flag == TBD) {
-                        bfs.enqueue(ngbr_code[i_q]);
+                        enqueue(ngbr_code[i_q], front, rear, queue, visited);
                     }
                 } else {
                     bool in_lat_sf  = lat_sf.find(ngbr_code[i_q]) == lat_sf.end();
@@ -869,7 +862,6 @@ void Lat_Manager::propagate_fluid_lattices()
 
         } // for i_q
     }
-#endif
 }
 
 
@@ -909,7 +901,6 @@ D_morton Lat_Manager::dequeue(D_int &front, const D_int &rear, const std::vector
 
 void Lat_Manager::update_solid_lattices()
 {
-#ifdef SOLDICENTER
     D_setLat add_solid;
 
     for (auto &i_lat : lat_f.at(C_max_level))
@@ -989,7 +980,6 @@ void Lat_Manager::update_solid_lattices()
         lat_f.at(C_max_level).erase(i_solid);
         lat_sf.insert(make_pair(i_solid, Cell(Cell_Flag::SOLID)));
     }
-#endif
 }
 
 

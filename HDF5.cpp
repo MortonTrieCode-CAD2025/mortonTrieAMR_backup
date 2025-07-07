@@ -106,12 +106,10 @@ void HDF5H::write_hdf5(std::string outfile)
 	{
 		write_numerical_boundary(file_id);
 	}
-#ifdef SOLIDCENTER
 	if (flag_write_domain_boundary)
 	{
 		write_domain_boundary(file_id);
 	}
-#endif
 
 #if	(C_SOLID_BOUNDARY == 2)	
 #if (C_DEBUG == 1)
@@ -185,11 +183,10 @@ void HDF5H::write_grid(T_grptr &grid_ptr, int level_index, hid_t &group0_id, std
 #if (C_DIMS==3)
 		xyz[icount_points*C_DIMS + 2] = 0;
 		Morton_Assist::pointer_me->compute_coordinate(iter->first, ilevel, xyz[icount_points*C_DIMS], xyz[icount_points*C_DIMS + 1], xyz[icount_points*C_DIMS + 2]);
-		#ifdef SOLIDCENTER
-		xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-		xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offest_y0_grid;
-		xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-		#endif
+		// Apply unified domain offset for arbitrary solid positioning
+		xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+		xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offset_y0_grid;
+		xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 		D_morton key_x1 = Morton_Assist::find_x1(key_current, ilevel);
 		D_morton key_y1 = Morton_Assist::find_y1(key_current, ilevel);
 		D_morton key_z1 = Morton_Assist::find_z1(key_current, ilevel);
@@ -371,11 +368,10 @@ void HDF5H::write_numerical_boundary(const hid_t file_id)
 #if (C_DIMS==3)
 				xyz[icount_points*C_DIMS + 2] = 0;
 				Morton_Assist::pointer_me->compute_coordinate(iter->first, ilevel, xyz[icount_points*C_DIMS], xyz[icount_points*C_DIMS + 1], xyz[icount_points*C_DIMS + 2]);
-				#ifdef SOLIDCENTER
-				xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-				xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offest_y0_grid;
-				xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-				#endif
+				// Apply unified domain offset for arbitrary solid positioning
+				xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+				xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offset_y0_grid;
+				xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 				bool bool_xy, bool_xz, bool_yz;
 				D_morton key_x1 = Morton_Assist::find_x1(key_current, ilevel);
 				D_morton key_y1 = Morton_Assist::find_y1(key_current, ilevel);
@@ -513,19 +509,12 @@ void HDF5H::write_solid_polyline(const hid_t file_id)
 		// std::cout << "cencter of solid: " << iter << " is x = " << Solid_Manager::pointer_me->shape_solids.at(iter).x0 - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offest_x0 << ", y = " << Solid_Manager::pointer_me->shape_solids.at(iter).y0 - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offest_y0 << ", z = " << Solid_Manager::pointer_me->shape_solids.at(iter).z0 - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offest_z0 << std::endl;
 		for (D_uint i = 0; i < npoints; ++i)
 		{
-#ifdef SOLIDCENTER
-			xyz[i*C_DIMS] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).x  - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offest_x0;
-			xyz[i*C_DIMS + 1] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).y - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offest_y0;
+			// Apply unified domain offset for arbitrary solid positioning
+			xyz[i*C_DIMS] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).x  - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offset_x0;
+			xyz[i*C_DIMS + 1] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).y - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offset_y0;
  #if (C_DIMS == 3)
-			xyz[i*C_DIMS + 2] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).z - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offest_z0;
+			xyz[i*C_DIMS + 2] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).z - Solid_Manager::pointer_me->shape_solids.at(iter).shape_offset_z0;
  #endif
-#else
-			xyz[i*C_DIMS] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).x;
-			xyz[i*C_DIMS + 1] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).y;
- #if (C_DIMS == 3)
-			xyz[i*C_DIMS + 2] = Solid_Manager::pointer_me->shape_solids.at(iter).node.at(i).z;
- #endif
-#endif
 		}
 
 		hid_t group_id = H5Gcreate(group0_id, (ini_group + shaps_dir).c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -560,7 +549,6 @@ void HDF5H::write_solid_polyline(const hid_t file_id)
 }
 
 
-#ifdef SOLIDCENTER
 /**
 * @brief      function to write boundries of the compuational domain (i.e. background mesh) in HDF5 format.
 * @param[in]  file_id      id of the open file.
@@ -666,9 +654,9 @@ void HDF5H::write_domain_boundary(const hid_t file_id)
 			xyz[icount_points*C_DIMS + 2] = 0;
 			D_morton key_current = iter->first;
 			Morton_Assist::pointer_me->compute_coordinate(iter->first, iter->second, xyz[icount_points*C_DIMS], xyz[icount_points*C_DIMS + 1], xyz[icount_points*C_DIMS + 2]);
-			xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-			xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offest_y0_grid;
-			xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offest_z0_grid;
+			xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+			xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offset_y0_grid;
+			xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 
 			bool bool_yz;
 			D_morton key_x1 = Morton_Assist::find_x1(key_current, iter->second);
@@ -835,9 +823,9 @@ void HDF5H::write_domain_boundary(const hid_t file_id)
 			xyz[icount_points*C_DIMS + 2] = 0;
 			D_morton key_current = iter->first;
 			Morton_Assist::pointer_me->compute_coordinate(iter->first, iter->second, xyz[icount_points*C_DIMS], xyz[icount_points*C_DIMS + 1], xyz[icount_points*C_DIMS + 2]);
-			xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-			xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offest_y0_grid;
-			xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offest_z0_grid;
+			xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+			xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offset_y0_grid;
+			xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 
 			bool bool_xz;
 			D_morton key_x1 = Morton_Assist::find_x1(key_current, iter->second);
@@ -938,9 +926,9 @@ void HDF5H::write_domain_boundary(const hid_t file_id)
 			xyz[icount_points*C_DIMS + 2] = 0;
 			D_morton key_current = iter->first;
 			Morton_Assist::pointer_me->compute_coordinate(iter->first, iter->second, xyz[icount_points*C_DIMS], xyz[icount_points*C_DIMS + 1], xyz[icount_points*C_DIMS + 2]);
-			xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-			xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offest_y0_grid;
-			xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offest_z0_grid;
+			xyz[icount_points * C_DIMS] -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+			xyz[icount_points * C_DIMS + 1] -= Solid_Manager::pointer_me->shape_offset_y0_grid;
+			xyz[icount_points * C_DIMS + 2] -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 
 			bool bool_xy;
 			D_morton key_x1 = Morton_Assist::find_x1(key_current, iter->second);
@@ -1018,7 +1006,6 @@ void HDF5H::write_domain_boundary(const hid_t file_id)
 
 	H5Gclose(group0_id);
 }
-#endif
 
 #if	(C_SOLID_BOUNDARY == 2)
 #if (C_DEBUG == 1)
@@ -1147,12 +1134,10 @@ void HDF5H::write_xdmf(std::string outfile)
 	{
 		write_xdmf_numerical_boundary(out, outfile);
 	}
-#ifdef SOLIDCENTER
 	if (flag_write_domain_boundary)
 	{
 		write_xdmf_domain_boundary(out, outfile);
 	}
-#endif
 
 #if	(C_SOLID_BOUNDARY == 2)
 #if (C_DEBUG == 1)
@@ -1289,7 +1274,6 @@ void HDF5H::write_xdmf_solid_ployline(std::ofstream &out, const std::string &out
 }
 
 
-#ifdef SOLIDCENTER
 /**
 * @brief      function to write boundries of the compuational domain (i.e. background mesh) in XDMF file.
 * @param[in]  out      stream writing to XDMF file.
@@ -1423,7 +1407,6 @@ void HDF5H::write_xdmf_domain_boundary(std::ofstream &out, const std::string &ou
 #endif
 		out << "</Grid>" << std::endl;
 }
-#endif
 
 #if	(C_SOLID_BOUNDARY == 2)
 #if(C_DEBUG==1)

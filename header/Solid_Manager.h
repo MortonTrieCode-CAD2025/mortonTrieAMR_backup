@@ -14,11 +14,9 @@ public:
 	static Solid_Manager* pointer_me;
 	unsigned int numb_solids;           ///< total number of geometries
 	std::vector<Shape> shape_solids;
-#ifdef SOLIDCENTER
-	D_real shape_offest_x0_grid = 0, shape_offest_y0_grid = 0;
+	D_real shape_offset_x0_grid = 0, shape_offset_y0_grid = 0;
 #if (C_DIMS==3)
-	D_real shape_offest_z0_grid = 0;
-#endif
+	D_real shape_offset_z0_grid = 0;
 #endif
 	void output_pointCloud(const std::vector<Ini_Shape> &ini_shape);
 

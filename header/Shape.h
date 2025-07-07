@@ -148,17 +148,13 @@ struct Ini_Shape
 public:
 	bool bool_moving = false;
 	bool bool_enclosed = false;    ///< when set as true, it's a enclosed shape
-#ifdef SOLIDCENTER
 	D_real x0 = 0, y0 = 0;    ///< center of each solid
 #if (C_DIMS==3)
-	D_real z0;
-#endif
+	D_real z0 = 0;
 #endif
 	D_uint numb_nodes = 0; ///< number of solid nodes
 	D_uint numb_triFaces = 0; ///< number of solid nodes
-#ifdef SOLIDCENTER
 	std::vector<D_real> length; ///< used to store character length of the solid. I.e. cycle: length[0] is the radius
-#endif
 };
 
 // typedef Coord<D_real> D_vec;
@@ -173,11 +169,9 @@ public:
 	std::vector<Solid_Node> node;
 	std::vector<Solid_Face> triFace;
 	// std::vector<unsigned int> triFaceIdx_of_node;  // nodes belong to which TriFace
-#ifdef SOLIDCENTER
-	D_real shape_offest_x0 = 0, shape_offest_y0 = 0;
+	D_real shape_offset_x0 = 0, shape_offset_y0 = 0;
 #if (C_DIMS==3)
-	D_real shape_offest_z0 = 0;
-#endif
+	D_real shape_offset_z0 = 0;
 #endif
 	static bool judge_point_within_Shape(D_vec point, Solid_Face triFace, D_vec &intersectPoint);
 	static bool judge_point_within_Shape(D_vec point, Solid_Face triFace);
@@ -192,17 +186,13 @@ public:
 private:
 	Shape& operator=(const Ini_Shape &c1);
 
-#ifdef SOLIDCENTER
 	void cycle(std::vector<Solid_Node> &node, D_real t);
 	void line_fillx(D_real a, D_real b, std::vector<Solid_Node> &node, D_real t);
 	void channel(D_real a, D_real b, D_real c, D_real d, D_real radius, std::vector<Solid_Node> &node, D_real t);
 	void geofile(D_real x0, D_real y0, D_real z0, std::vector<Solid_Node> &node, D_real t);
 	void geofile_stl(D_real x0, D_real y0, D_real z0, D_real t);
-#endif
 	void geofile_stl();
-#ifdef SOLIDCENTER	
 	void geofile(std::vector<Solid_Node> &node, D_real t);
-#endif
 	// void sphere(D_real a, D_real b, D_real c, D_real d, D_real radius, std::vector<Solid_Node> &node, D_real t);
 	void sample_solidPoints_onTriFace();
 };

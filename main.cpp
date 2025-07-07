@@ -19,7 +19,7 @@ int main()
 	logfile.open("log", ios::out);
 	Log_function::logfile = &logfile;
 	if (!logfile.is_open()) {
-		cout << "Can't open logfile" << endl;
+		std::cout << "Can't open logfile" << std::endl;
 	};
 
 	Obj_Manager obj_manager;
@@ -32,15 +32,15 @@ int main()
 	// obj_manager.output();
 
 	double t1 = tmr.elapsed();
-	std::cout << "time for initialization: " << t1 - t0 << std::endl;
+	std::cout << "Time for initial mesh: " << t1 - t0 << std::endl;
 
 	LBM_Manager lbm_manager;
 	lbm_manager.fluidSimulate();
 
-	// obj_manager.time_marching_management();
+	double t2 = tmr.elapsed();
+	std::cout << "Time for fluid simulation: " << t2 - t1 << std::endl;
 
-	// double t2 = tmr.elapsed();
-	// std::cout << "time for time marching: " << t2 - t1 << std::endl;
+	// obj_manager.time_marching_management();
 
 	// obj_manager.output();
 

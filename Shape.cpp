@@ -19,17 +19,13 @@ Shape& Shape::operator=(const Ini_Shape &c2)
 {
 	this->shape_type = c2.shape_type;
 	this->bool_moving = c2.bool_moving;
-#ifdef SOLIDCENTER
 	this->x0 = c2.x0;
 	this->y0 = c2.y0;
- #if (C_DIMS==3)
+#if (C_DIMS==3)
 	this->z0 = c2.z0;
- #endif
 #endif
 	this->numb_nodes = c2.numb_nodes;
-#ifdef SOLIDCENTER
 	this->length = c2.length;
-#endif
 	return *this;
 }
 
@@ -58,8 +54,8 @@ void Shape::cycle(std::vector<Solid_Node> &node, D_real t)
 
 	for (D_uint i = 0; i < numb_nodes; ++i)
 	{
-		node.at(i).x = radius_final * cos(2. * C_pi * (static_cast<D_real>(i) / static_cast<D_real>(numb_nodes))) + x0 + shape_offest_x0;
-		node.at(i).y = radius_final * sin(2. * C_pi * (static_cast<D_real>(i) / static_cast<D_real>(numb_nodes))) + y0 + shape_offest_y0;
+		node.at(i).x = radius_final * cos(2. * C_pi * (static_cast<D_real>(i) / static_cast<D_real>(numb_nodes))) + x0 + shape_offset_x0;
+		node.at(i).y = radius_final * sin(2. * C_pi * (static_cast<D_real>(i) / static_cast<D_real>(numb_nodes))) + y0 + shape_offset_y0;
 #if (C_FSI_INTERFACE == 1)
 		node.at(i).u = 0;
 		node.at(i).v = 0;
@@ -78,7 +74,6 @@ void Shape::cycle(std::vector<Solid_Node> &node, D_real t)
 * @param[in]  t     time.
 * @note       it is assumed that the range of x is from 0 to C_xb. When in 3D, the z is set as C_zb / 2.
 */
-#ifdef SOLIDCENTER
 void Shape::line_fillx(D_real a, D_real b, std::vector<Solid_Node> &node, D_real t)
 {
 	bool_enclosed = false;
@@ -92,8 +87,8 @@ void Shape::line_fillx(D_real a, D_real b, std::vector<Solid_Node> &node, D_real
 
 
     D_real dx = C_xb / static_cast<D_real>(numb_nodes);
-	node.at(0).x = 0. + shape_offest_x0;
-	node.at(0).y = b + shape_offest_y0;
+	node.at(0).x = 0. + shape_offset_x0;
+	node.at(0).y = b + shape_offset_y0;
 
 #if (C_FSI_INTERFACE == 1)
 	D_real arc = dx * sqrt(SQ(a) + 1);
@@ -105,12 +100,12 @@ void Shape::line_fillx(D_real a, D_real b, std::vector<Solid_Node> &node, D_real
 	D_uint end_i = 0;
 	for (D_uint i = 1; i < numb_nodes; ++i)
 	{
-		node.at(i).x = node.at(i - 1).x + dx + shape_offest_x0;
-		node.at(i).y = a * node.at(i).x + b + shape_offest_y0;
+		node.at(i).x = node.at(i - 1).x + dx + shape_offset_x0;
+		node.at(i).y = a * node.at(i).x + b + shape_offset_y0;
 		if ((node.at(i).y) < 0)
 		{
-			node.at(i).x = -b/ a + shape_offest_x0;
-			node.at(i).y = 0 + shape_offest_y0;
+			node.at(i).x = -b/ a + shape_offset_x0;
+			node.at(i).y = 0 + shape_offset_y0;
 			end_i = i + 1;
 			break;
 		}
@@ -125,8 +120,8 @@ void Shape::line_fillx(D_real a, D_real b, std::vector<Solid_Node> &node, D_real
 	{
 		for (D_uint i = end_i; i < numb_nodes; ++i)
 		{
-			node.at(i).x = node.at(0).x + shape_offest_x0;
-			node.at(i).y = node.at(0).y + shape_offest_y0;
+			node.at(i).x = node.at(0).x + shape_offset_x0;
+			node.at(i).y = node.at(0).y + shape_offset_y0;
 #if (C_FSI_INTERFACE == 1)
 			node.at(i).u = 0;
 			node.at(i).v = 0;
@@ -138,11 +133,11 @@ void Shape::line_fillx(D_real a, D_real b, std::vector<Solid_Node> &node, D_real
 #if(C_DIMS == 3)
 	for (D_uint i = 0; i < numb_nodes; ++i)
 	{
-		node.at(i).z = (C_zb + shape_offest_z0) / 2;
+		node.at(i).z = (C_zb + shape_offset_z0) / 2;
 	}
 #endif
 
-	if (node.at(numb_nodes - 1).y > (C_yb + shape_offest_y0))
+	if (node.at(numb_nodes - 1).y > (C_yb + shape_offset_y0))
 	{
 		std::stringstream warning;
 		warning << "coordinate y = "<< node.at(numb_nodes - 1).y<< " of the last node exceeds the top compuational domain C_yb = "<<C_yb << std::endl;
@@ -157,10 +152,8 @@ void Shape::line_fillx(D_real a, D_real b, std::vector<Solid_Node> &node, D_real
 #endif
 
 }
-#endif
 
-#ifdef SOLIDCENTER
- #if (C_DIMS == 3)
+#if (C_DIMS == 3)
 /**
 * @brief      function to generate 3D channel.
 * @param[in]  a     constant for y = a*x + b, centerline of the channel.
@@ -202,9 +195,9 @@ void Shape::channel(D_real a, D_real b, D_real c, D_real d, D_real radius, std::
 			theta = 2 * C_pi*static_cast<D_real>(icirc)/(ncirc + 1);
 			ytemp1 = radius * cos(2 * theta);
 			ztemp1 = radius * sin(2 * theta);
-			node.at(icount).x = xtemp0 + shape_offest_x0;
-			node.at(icount).y = ytemp0 + ytemp1 + shape_offest_y0;
-			node.at(icount).z = ztemp0 + ztemp1 + shape_offest_z0;
+			node.at(icount).x = xtemp0 + shape_offset_x0;
+			node.at(icount).y = ytemp0 + ytemp1 + shape_offset_y0;
+			node.at(icount).z = ztemp0 + ztemp1 + shape_offset_z0;
 #if (C_FSI_INTERFACE == 1)
 			node.at(icount).u = 0;
 			node.at(icount).v = 0;
@@ -229,7 +222,6 @@ void Shape::channel(D_real a, D_real b, D_real c, D_real d, D_real radius, std::
 }
 
  #endif
-#endif
 
 /**
 * @brief      function to read geometry data (cloud point).
@@ -240,13 +232,12 @@ void Shape::channel(D_real a, D_real b, D_real c, D_real d, D_real radius, std::
 * @param[in]  t     time.
 * @note       it is assumed that the range of x is from 0 to C_xb. Both y and z rely on x. Points are distributed with equal distance.
 */
-#ifdef SOLIDCENTER
 void Shape::geofile(D_real xc, D_real yc, D_real zc, std::vector<Solid_Node> &node, D_real t)
 {
 	bool_enclosed = true;
-	D_real x_offset = shape_offest_x0, y_offset = shape_offest_y0;
+	D_real x_offset = shape_offset_x0, y_offset = shape_offset_y0;
 #if (C_DIMS == 3)
-	D_real z_offset = shape_offest_z0;
+	D_real z_offset = shape_offset_z0;
 #endif
 
 	std::istringstream istr;
@@ -338,25 +329,23 @@ void Shape::geofile(D_real xc, D_real yc, D_real zc, std::vector<Solid_Node> &no
 	//std::cout <<"center of the geometry: " << xc << ", " << yc << ", " << zc << std::endl;
 		//std::cout <<"center of the geometry: " << xc << ", " << yc << ", " << zc << std::endl;
 }
-#endif
 
-#ifdef SOLIDCENTER
 /**
 * @brief      function to read geometry data (STL format).
 * @param[in]  x0     geometry center, must inside the geometry for fool fill method.
 * @param[in]  y0     geometry center.
 * @param[in]  z0     geometry center.
 * @param[in]  t     time.
-* @note       it is assumed that the range of x is from 0 to C_xb. Both y and z rely on x. Points are distributed with equal distance.
+* @note       Supports arbitrary solid positioning within the computational domain.
 */
 void Shape::geofile_stl(D_real xc, D_real yc, D_real zc, D_real t)
 {
 	std::stringstream error;
 
 	bool_enclosed = false;
-	D_real x_offset = shape_offest_x0, y_offset = shape_offest_y0;
+	D_real x_offset = shape_offset_x0, y_offset = shape_offset_y0;
 #if (C_DIMS == 3)
-	D_real z_offset = shape_offest_z0;
+	D_real z_offset = shape_offset_z0;
 #endif
 
 	std::istringstream istr;
@@ -528,7 +517,6 @@ void Shape::geofile_stl(D_real xc, D_real yc, D_real zc, D_real t)
 	//std::cout <<"center of the geometry: " << xc << ", " << yc << ", " << zc << std::endl;
 		//std::cout <<"center of the geometry: " << xc << ", " << yc << ", " << zc << std::endl;
 }
-#else
 /**
 * @brief      function to read geometry data (STL format).
 * @note       it is assumed that the range of x is from 0 to C_xb. Both y and z rely on x. Points are distributed with equal distance.
@@ -610,8 +598,8 @@ void Shape::geofile_stl()
 				#if (C_DIMS == 3)
 				istr >> triFace_tmp.vertex1.z;
 				#endif
-				#ifndef SOLIDCENTER
-				if ((triFace_tmp.vertex1.x < (C_domain[0]+C_eps)) || (triFace_tmp.vertex1.x > (C_domain[3]+C_eps)) || 
+				// Unified boundary validation for arbitrary solid positioning
+				if ((triFace_tmp.vertex1.x < (C_domain[0]+C_eps)) || (triFace_tmp.vertex1.x > (C_domain[3]+C_eps)) ||
 				    (triFace_tmp.vertex1.y < (C_domain[1]+C_eps)) || (triFace_tmp.vertex1.y > (C_domain[4]+C_eps)) ||
 					(triFace_tmp.vertex1.z < (C_domain[2]+C_eps)) || (triFace_tmp.vertex1.z > (C_domain[5]+C_eps)))
 				{
@@ -619,7 +607,6 @@ void Shape::geofile_stl()
 					warning << "coordinate = " << "("<<triFace_tmp.vertex1.x<<", "<< triFace_tmp.vertex1.y<<", "<< triFace_tmp.vertex1.z <<")" << " exceeds the compuational domain." << std::endl;
 					log_error(warning.str(), Log_function::logfile);
 				}
-				#endif
 			}
 			{
 				std::getline(file_in,s); istr.str(""); istr.clear(); istr.str(s);
@@ -632,8 +619,8 @@ void Shape::geofile_stl()
 				#if (C_DIMS == 3)
 				istr >> triFace_tmp.vertex2.z;
 				#endif
-				#ifndef SOLIDCENTER
-				if ((triFace_tmp.vertex2.x < (C_domain[0]+C_eps)) || (triFace_tmp.vertex2.x > (C_domain[3]+C_eps)) || 
+				// Unified boundary validation for arbitrary solid positioning
+				if ((triFace_tmp.vertex2.x < (C_domain[0]+C_eps)) || (triFace_tmp.vertex2.x > (C_domain[3]+C_eps)) ||
 				    (triFace_tmp.vertex2.y < (C_domain[1]+C_eps)) || (triFace_tmp.vertex2.y > (C_domain[4]+C_eps)) ||
 					(triFace_tmp.vertex2.z < (C_domain[2]+C_eps)) || (triFace_tmp.vertex2.z > (C_domain[5]+C_eps)))
 				{
@@ -641,7 +628,6 @@ void Shape::geofile_stl()
 					warning << "coordinate = " << "("<<triFace_tmp.vertex2.x<<", "<< triFace_tmp.vertex2.y<<", "<< triFace_tmp.vertex2.z <<")" << " exceeds the compuational domain." << std::endl;
 					log_error(warning.str(), Log_function::logfile);
 				}
-				#endif
 			}
 			{
 				std::getline(file_in,s); istr.str(""); istr.clear(); istr.str(s);
@@ -654,8 +640,8 @@ void Shape::geofile_stl()
 				#if (C_DIMS == 3)
 				istr >> triFace_tmp.vertex3.z;
 				#endif
-				#ifndef SOLIDCENTER
-				if ((triFace_tmp.vertex3.x < (C_domain[0]+C_eps)) || (triFace_tmp.vertex3.x > (C_domain[3]+C_eps)) || 
+				// Unified boundary validation for arbitrary solid positioning
+				if ((triFace_tmp.vertex3.x < (C_domain[0]+C_eps)) || (triFace_tmp.vertex3.x > (C_domain[3]+C_eps)) ||
 				    (triFace_tmp.vertex3.y < (C_domain[1]+C_eps)) || (triFace_tmp.vertex3.y > (C_domain[4]+C_eps)) ||
 					(triFace_tmp.vertex3.z < (C_domain[2]+C_eps)) || (triFace_tmp.vertex3.z > (C_domain[5]+C_eps)))
 				{
@@ -663,7 +649,6 @@ void Shape::geofile_stl()
 					warning << "coordinate = " << "("<<triFace_tmp.vertex3.x<<", "<< triFace_tmp.vertex3.y<<", "<< triFace_tmp.vertex3.z <<")" << " exceeds the compuational domain." << std::endl;
 					log_error(warning.str(), Log_function::logfile);
 				}
-				#endif
 			}
 			std::getline(file_in,s); istr.str(""); istr.clear(); istr.str(s); 
 			istr >> str_split;
@@ -717,7 +702,6 @@ void Shape::geofile_stl()
 	file_in.close();
 
 }
-#endif
 
 
 /**
@@ -726,7 +710,6 @@ void Shape::geofile_stl()
 * @param[in]  t     time.
 * @note       it is assumed that the range of x is from 0 to C_xb. Both y and z rely on x. Points are distributed with equal distance.
 */
-#ifdef SOLIDCENTER
 void Shape::geofile(std::vector<Solid_Node> &node, D_real t)
 {
 	x0+= C_dx / two_power_n(C_max_level) * 0.999;
@@ -739,7 +722,6 @@ void Shape::geofile(std::vector<Solid_Node> &node, D_real t)
 #endif
 	}
 }
-#endif
 
 /**
  * @brief Sample points on the triangle surface to add the solid points

@@ -320,12 +320,11 @@ void IO_TECPLOTH::write_mesh_grid(T_grptr &grid_ptr, int level_index, std::ofstr
     {
         double x, y, z;
         Morton_Assist::compute_coordinate(i_code, node_idx.at(i_code)[1], x, y, z);
-#ifdef SOLIDCENTER
-        x -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-        y -= Solid_Manager::pointer_me->shape_offest_y0_grid;
+        // Apply unified domain offset for arbitrary solid positioning
+        x -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+        y -= Solid_Manager::pointer_me->shape_offset_y0_grid;
 #if (C_DIMS==3)
-        z -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-#endif
+        z -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 #endif
         plt_file << x << std::endl;
     }
@@ -334,12 +333,11 @@ void IO_TECPLOTH::write_mesh_grid(T_grptr &grid_ptr, int level_index, std::ofstr
     {
         double x, y, z;
         Morton_Assist::compute_coordinate(i_code, node_idx.at(i_code)[1], x, y, z);
-#ifdef SOLIDCENTER
-        x -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-        y -= Solid_Manager::pointer_me->shape_offest_y0_grid;
+        // Apply unified domain offset for arbitrary solid positioning
+        x -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+        y -= Solid_Manager::pointer_me->shape_offset_y0_grid;
 #if (C_DIMS==3)
-        z -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-#endif
+        z -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 #endif
         plt_file << y << std::endl;
     }
@@ -348,12 +346,11 @@ void IO_TECPLOTH::write_mesh_grid(T_grptr &grid_ptr, int level_index, std::ofstr
     {
         double x, y, z;
         Morton_Assist::compute_coordinate(i_code, node_idx.at(i_code)[1], x, y, z);
-#ifdef SOLIDCENTER
-        x -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-        y -= Solid_Manager::pointer_me->shape_offest_y0_grid;
+        // Apply unified domain offset for arbitrary solid positioning
+        x -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+        y -= Solid_Manager::pointer_me->shape_offset_y0_grid;
 #if (C_DIMS==3)
-        z -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-#endif
+        z -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 #endif
         plt_file << z << std::endl;
     }
@@ -533,12 +530,11 @@ void IO_TECPLOTH::write_mesh_boundaries(std::ofstream &plt_file, int &zone_count
                 {
                     double x, y, z;
                     Morton_Assist::compute_coordinate(iter->first, ilevel, x, y, z);
-#ifdef SOLIDCENTER
-                    x -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-                    y -= Solid_Manager::pointer_me->shape_offest_y0_grid;
+                    // Apply unified domain offset for arbitrary solid positioning
+                    x -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+                    y -= Solid_Manager::pointer_me->shape_offset_y0_grid;
 #if (C_DIMS==3)
-                    z -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-#endif
+                    z -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 #endif
                     plt_file << x << std::endl;
                 }
@@ -548,12 +544,11 @@ void IO_TECPLOTH::write_mesh_boundaries(std::ofstream &plt_file, int &zone_count
                 {
                     double x, y, z;
                     Morton_Assist::compute_coordinate(iter->first, ilevel, x, y, z);
-#ifdef SOLIDCENTER
-                    x -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-                    y -= Solid_Manager::pointer_me->shape_offest_y0_grid;
+                    // Apply unified domain offset for arbitrary solid positioning
+                    x -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+                    y -= Solid_Manager::pointer_me->shape_offset_y0_grid;
 #if (C_DIMS==3)
-                    z -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-#endif
+                    z -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 #endif
                     plt_file << y << std::endl;
                 }
@@ -563,12 +558,11 @@ void IO_TECPLOTH::write_mesh_boundaries(std::ofstream &plt_file, int &zone_count
                 {
                     double x, y, z;
                     Morton_Assist::compute_coordinate(iter->first, ilevel, x, y, z);
-#ifdef SOLIDCENTER
-                    x -= Solid_Manager::pointer_me->shape_offest_x0_grid;
-                    y -= Solid_Manager::pointer_me->shape_offest_y0_grid;
+                    // Apply unified domain offset for arbitrary solid positioning
+                    x -= Solid_Manager::pointer_me->shape_offset_x0_grid;
+                    y -= Solid_Manager::pointer_me->shape_offset_y0_grid;
 #if (C_DIMS==3)
-                    z -= Solid_Manager::pointer_me->shape_offest_z0_grid;
-#endif
+                    z -= Solid_Manager::pointer_me->shape_offset_z0_grid;
 #endif
                     plt_file << z << std::endl;
                 }

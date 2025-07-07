@@ -9,8 +9,8 @@ An AMR framework for Lattice Boltzmann Method (LBM) simulations driven by Morton
 
 
 1. Edit `header/Constants.h`
-2. Change line 19: `#define C_MAP_TYPE 3`
-3. Recompile your project
+2. Select `#define C_MAP_TYPE 1/2/3`: 1 = Hash table, 2 = Red-black tree 3 = MortonTrie
+3. Recompile our project
 
 
 ```

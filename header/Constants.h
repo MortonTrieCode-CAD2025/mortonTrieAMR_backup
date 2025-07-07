@@ -28,16 +28,26 @@
 #define C_SOLID_BOUNDARY 1              ///< Choose method to implement solid boundary condition, 1 static boundary, 2 moving boundary;
                                         //  if C_SOLID_BOUNDARY == 2: update nodes at each finest time step
 
-#define SOLIDCENTER
+// SOLIDCENTER preprocessor directive removed - unified arbitrary solid positioning enabled
 
 namespace airplane
 {
     const std::string F_model_path = "/home/AMR-framework/stl/airplane.txt";
+    const std::string OUTPUT_NAME = "airplane";
 
     // Region settings
-    const D_real C_xb = 20000;  ///< Background boundary distance in x direction
-    const D_real C_yb = 20000;  ///< Background boundary distance in y direction
-    const D_real C_zb = 20000;  ///< Background boundary distance in z direction
+    constexpr D_real C_xb = 20000;  ///< Background boundary distance in x direction
+    constexpr D_real C_yb = 20000;  ///< Background boundary distance in y direction
+    constexpr D_real C_zb = 20000;  ///< Background boundary distance in z direction
+
+    // Legacy domain boundary variables for compatibility
+    constexpr D_real xb_domain = C_xb;
+    constexpr D_real yb_domain = C_yb;
+    constexpr D_real zb_domain = C_zb;
+
+    // Domain boundaries: {x_min, y_min, z_min, x_max, y_max, z_max}
+    constexpr D_real C_domain[6] = {0, 0, 0,
+                               C_xb, C_yb, C_zb};
 
     // Mesh settings
     const D_real C_dx = 256;    ///< Grid space of the background mesh
@@ -61,7 +71,21 @@ namespace airplane
     const unsigned int C_extend_outer_z0 = 2;      ///< additional extension in -z direction (outer block)
     const unsigned int C_extend_outer_z1 = 2;      ///< additional extension in +z direction (outer block)
     const unsigned int C_extend_ghost = 0;      ///< Number of nodes extended from solid points inside the solid
-    
+
+    // LBM physical parameters
+    static D_real U_dt = 0.001f;               ///< [s]
+    constexpr D_real U_u0 = 1.0;               ///< initial velocity in x direction
+    constexpr D_real U_v0 = 0.;                ///< initial velocity in y direction
+    constexpr D_real U_w0 = 0.;                ///< initial velocity in z direction
+    constexpr D_real U_rho0 = 1.;              ///< initial density
+    constexpr D_real U_kineViscosity = 0.002;  ///< kinetic viscosity
+    constexpr uint U_iters = 100;              ///< number of LBM iterations
+
+    // Reference physical variables
+    constexpr D_real R_velocity = U_u0;
+    constexpr D_real R_length = 1.;
+    constexpr D_real R_Re = R_velocity * R_length / U_kineViscosity;
+
 }
 
 namespace hm
@@ -71,15 +95,10 @@ namespace hm
     #define C_DIMS 3                      ///< Number of dimensions
     #define C_Q 27                        ///< Number of discrete velocities
 
-    // Region settings
-#ifdef SOLIDCENTER
-    constexpr D_real C_xb = 1200;   ///< Background boundary distance in x direction
-    constexpr D_real C_yb = 600;    ///< Background boundary distance in y direction
-    constexpr D_real C_zb = 400;    ///< Background boundary distance in z direction
-#else
+    // Region settings - Unified domain boundary definition
+    // Domain boundaries: {x_min, y_min, z_min, x_max, y_max, z_max}
     constexpr D_real C_domain[6] = {-10, -50, -60,
                                400, 150, 60};
-#endif
 
     // Mesh settings
     constexpr D_real C_dx = 20;      ///< Grid space of the background mesh
@@ -137,15 +156,10 @@ namespace sphere
     // sphere = diameter d, loc in (2d, 0, 0)
     // for stl, aabb = (9.5, 10.5), (9.5, 10.5), (9.5, 10.5)
 
-    // Region settings
-#ifdef SOLIDCENTER
-    constexpr D_real C_xb = 11;   ///< Background boundary distance in x direction
-    constexpr D_real C_yb = 4;    ///< Background boundary distance in y direction
-    constexpr D_real C_zb = 4;    ///< Background boundary distance in z direction
-#else
+    // Region settings - Unified domain boundary definition
+    // Domain boundaries: {x_min, y_min, z_min, x_max, y_max, z_max}
     constexpr D_real C_domain[6] = {8, 8, 8,
                                19, 12, 12};
-#endif
 
     // Mesh settings
     constexpr D_real C_dx = 0.2;      ///< Grid space of the background mesh
@@ -189,15 +203,10 @@ namespace dji
 
 
 
-    // Region settings
-#ifdef SOLIDCENTER
-    constexpr D_real C_xb = 200;   ///< Background boundary distance in x direction
-    constexpr D_real C_yb = 200;    ///< Background boundary distance in y direction
-    constexpr D_real C_zb = 200;    ///< Background boundary distance in z direction
-#else
-    constexpr D_real C_domain[6] = {8, 8, 8,
-                               19, 12, 12};
-#endif
+    // Region settings - Unified domain boundary definition
+    // Domain boundaries: {x_min, y_min, z_min, x_max, y_max, z_max}
+    constexpr D_real C_domain[6] = {-100, -100, -100,
+                               300, 300, 300};
 
     // Mesh settings
     constexpr D_real C_dx = 0.25;      ///< Grid space of the background mesh
@@ -264,15 +273,10 @@ namespace paris
 
 
 
-    // Region settings
-#ifdef SOLIDCENTER
-    constexpr D_real C_xb = 400;   ///< Background boundary distance in x direction
-    constexpr D_real C_yb = 400;    ///< Background boundary distance in y direction
-    constexpr D_real C_zb = 800;    ///< Background boundary distance in z direction
-#else
-    constexpr D_real C_domain[6] = {8, 8, 8,
-                               19, 12, 12};
-#endif
+    // Region settings - Unified domain boundary definition
+    // Domain boundaries: {x_min, y_min, z_min, x_max, y_max, z_max}
+    constexpr D_real C_domain[6] = {-200, -200, -100,
+                               600, 600, 900};
 
     // Mesh settings
     constexpr D_real C_dx = 128;      ///< Grid space of the background mesh
@@ -339,15 +343,10 @@ namespace bunny
 
 
 
-    // Region settings
-#ifdef SOLIDCENTER
-    constexpr D_real C_xb = 800;   ///< Background boundary distance in x direction
-    constexpr D_real C_yb = 800;    ///< Background boundary distance in y direction
-    constexpr D_real C_zb = 800;    ///< Background boundary distance in z direction
-#else
-    constexpr D_real C_domain[6] = {8, 8, 8,
-                               19, 12, 12};
-#endif
+    // Region settings - Unified domain boundary definition
+    // Domain boundaries: {x_min, y_min, z_min, x_max, y_max, z_max}
+    constexpr D_real C_domain[6] = {-400, -400, -400,
+                               1200, 1200, 1200};
 
     // Mesh settings
     constexpr D_real C_dx = 5.5;      ///< Grid space of the background mesh
@@ -400,11 +399,12 @@ namespace bunny
     constexpr D_real R_length = 1.;
     constexpr D_real R_Re = R_velocity * R_length / U_kineViscosity;
 
-    
+
+
 }
 
 
-using namespace bunny;
+using namespace airplane;
 
 #if (C_FSI_INTERFACE == 1)
 const unsigned int C_extend_IB = 1;      ///< Number of nodes extended from solid points for IBM

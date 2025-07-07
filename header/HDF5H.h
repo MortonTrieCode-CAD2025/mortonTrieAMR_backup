@@ -30,10 +30,8 @@ private:
 	void write_numerical_boundary(const hid_t file_id);
 	void write_xdmf_numerical_boundary(std::ofstream &out, const std::string &outfile);
 
-#ifdef SOLIDCENTER
 	void write_domain_boundary(const hid_t file_id);
 	void write_xdmf_domain_boundary(std::ofstream &out, const std::string &outfile);
-#endif
 
 #if (C_DEBUG == 1)
 	void write_output_points_update(const hid_t file_id);
